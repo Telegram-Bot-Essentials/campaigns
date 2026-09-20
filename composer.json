@@ -4,28 +4,20 @@
     "type": "library",
     "require": {
         "php": "^8.3",
+        "ext-gd": "*",
+        "chillerlan/php-qrcode": "^6.0",
         "laravel/framework": "^12 || ^13",
-        "telegram-bot-essentials/essence": "^0.12"
+        "telegram-bot-essentials/essence": "^0.13"
     },
-    "require-dev": {
-        "larastan/larastan": "^3.0",
-        "laravel/pint": "^1.18",
-        "orchestra/testbench": "^10.0 || ^11.0",
-        "pestphp/pest": "^3.7 || ^4.0",
-        "pestphp/pest-plugin-laravel": "^3.1 || ^4.0"
+    "suggest": {
+        "telegram-bot-essentials/billing": "Adds paid-user and revenue figures to each campaign.",
+        "telegram-bot-essentials/user-management": "Adds a campaign section and a campaign filter to the admin user list.",
+        "telegram-bot-essentials/user-wallet": "Lets the revenue figures exclude wallet top-ups."
     },
     "license": "MIT",
     "autoload": {
         "psr-4": {
             "TelegramBotEssentials\\Campaigns\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "TelegramBotEssentials\\Campaigns\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
         }
     },
     "authors": [
@@ -40,6 +32,24 @@
             "providers": [
                 "TelegramBotEssentials\\Campaigns\\TbeCampaignsServiceProvider"
             ]
+        }
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "pestphp/pest": "^3.7 || ^4.0",
+        "pestphp/pest-plugin-laravel": "^3.1 || ^4.0",
+        "telegram-bot-essentials/billing": "~0.0.32",
+        "telegram-bot-essentials/user-management": "~0.0.17",
+        "telegram-bot-essentials/user-wallet": "~0.0.22"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TelegramBotEssentials\\Campaigns\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
         }
     },
     "config": {
