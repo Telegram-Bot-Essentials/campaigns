@@ -2,11 +2,15 @@
 
 namespace TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Admin;
 
+use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
+use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
+use TelegramBotEssentials\Campaigns\Services\PrizeGranting;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
+use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Models\MessageMeta;
 use TelegramBotEssentials\Essence\Telegram\CallbackQueries\CallbackQuery;
 
@@ -103,6 +107,79 @@ class CampaignsQuery extends CallbackQuery
         CampaignsFeature::show($campaign, $lastPage)
             ->answer(__('tbe-campaigns::campaigns.main.answers.updated'))
             ->update();
+    }
+
+    public function prizes(Campaign $campaign, int $lastPage = 1): void
+    {
+        CampaignsFeature::prizes($campaign, $lastPage)->update();
+    }
+
+    public function addPrize(Campaign $campaign, int $lastPage = 1): void
+    {
+        CampaignsFeature::addPrize($campaign, $lastPage)->update();
+    }
+
+    /** Hands over to the prize type's own config form. */
+    public function pickPrizeType(Campaign $campaign, string $typeKey, int $lastPage = 1): void
+    {
+        $type = prizeTypes()->get($typeKey);
+
+        if ($type === null) {
+            $this->answer(__('tbe-campaigns::prizes.admin.unknownType'));
+
+            return;
+        }
+
+        /** @var class-string<Form> $form */
+        $form = $type->configForm();
+        $form::start(['campaign' => $campaign->id, 'lastPage' => $lastPage]);
+
+        $this->answer();
+    }
+
+    public function prize(CampaignPrize $prize, int $lastPage = 1): void
+    {
+        CampaignsFeature::prize($prize, $lastPage)->update();
+    }
+
+    public function togglePrize(CampaignPrize $prize, int $lastPage = 1): void
+    {
+        $prize->update(['active' => ! $prize->active]);
+
+        CampaignsFeature::prize($prize, $lastPage)->answer(__('tbe-campaigns::prizes.admin.updated'))->update();
+    }
+
+    public function editCap(CampaignPrize $prize, int $lastPage = 1): void
+    {
+        $messageMeta = MessageMeta::makeWithCurrentMessage();
+        $messageMeta->cancelableLockAction(__('tbe-campaigns::prizes.admin.cap.label'));
+
+        wHook()->user()->changeState(encodeAnswerState($this->type, 'updateCap', [
+            'prize' => $prize->id,
+            'lastPage' => $lastPage,
+            'message_meta' => $messageMeta->id,
+        ]));
+
+        wHook()->api()->sendMessage([
+            'chat_id' => wHook()->peerId(),
+            'text' => __('tbe-campaigns::prizes.admin.cap.prompt'),
+            'reply_markup' => wHook()->user()->getKeyboard(),
+            'parse_mode' => 'HTML',
+        ]);
+
+        $this->answer();
+    }
+
+    /** Retries every failed grant of the prize; each is claimed once, so a double tap does no harm. */
+    public function retryPrize(CampaignPrize $prize, int $lastPage = 1): void
+    {
+        $granting = app(PrizeGranting::class);
+
+        foreach ($prize->grants()->where('status', PrizeGrantStatus::Failed)->get() as $grant) {
+            $granting->retry($grant);
+        }
+
+        CampaignsFeature::prize($prize->refresh(), $lastPage)->answer(__('tbe-campaigns::prizes.admin.retried'))->update();
     }
 
     /** Locks the screen and waits for the admin's typed answer. */
