@@ -20,3 +20,25 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
   live from paid invoices (wallet top-ups excluded when user-wallet is installed).
 - user-management integration: a per-user campaign section and a user-list filter.
 - English and Persian translations.
+- Prizes: a `PrizeType` contract and `prizeTypes()` registry, `campaign_prizes` and
+  `campaign_prize_grants` tables, an admin **🎁 Prizes** screen (add, enable/disable,
+  limit, retry failed), a claim message and button for new users, and a per-prize
+  grant ledger with status, error and attempts.
+- Wallet-credit prize, registered when user-wallet is installed.
+- `PrizeConfigForm` base class for a prize type's config form.
+- `PrizePaymentAttempt` and `PrizeSettlement`: settle the invoice of an order-based
+  prize without a real payment, retry-safe, at price 0 (`original_price` is kept).
+  `PrizePaymentAttempt::isPrizeInvoice()` is the sale marker.
+
+### Changed
+
+- **`telegram-bot-essentials/billing` is now required** (was suggested).
+- Campaign stats exclude invoices settled as a prize.
+
+### Known limitations
+
+- A prize invoice is a paid invoice at price 0: readers that sum `price` are right,
+  but a count of paid invoices in another package still includes it.
+- Unclaimed prizes hold a slot of the limit indefinitely (no claim-by date).
+- No "My prizes" screen and no re-send of a lost claim message.
+- A failure inside an order's paid hook is recorded with a generic message.

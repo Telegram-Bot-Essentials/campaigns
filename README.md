@@ -7,8 +7,7 @@ ecosystem. An admin creates a named campaign from the bot's admin menu and gets 
 the campaign, and the campaign screen shows who joined, who was turned away and,
 with billing installed, what they paid.
 
-> **Status: `0.0.x`.** Prizes (a reward for joining) are planned as a second phase,
-> registered by other packages. Until then, listen for `CampaignUserAttributed`.
+> **Status: `0.0.x`.** The prize contract may still change between `0.0.x` releases.
 
 ## Installation
 
@@ -56,17 +55,118 @@ use TelegramBotEssentials\Campaigns\Telegram\ReplyKeys\Admin\CampaignsKey;
   (`unique(bot_id, bot_user_id)`, first touch wins).
 - Unknown, deleted, disabled and expired links, and returning users, are stored as a
   *miss* (deduped per user, payload and reason), and the user is told why.
-- After an attribution, `CampaignUserAttributed` is fired. Prize packages listen for it.
+- After an attribution, `CampaignUserAttributed` is fired and the campaign's
+  [prizes](#prizes) are reserved for the user.
+
+## Prizes
+
+An admin can attach **prizes** to a campaign: a reward every new user who joins through
+it receives. Campaigns owns everything generic; a **prize type** owns what is specific to
+one kind of reward.
+
+| Campaigns does | The prize type does |
+|---|---|
+| Stores which prizes a campaign has, with a cap each | Names itself (`key`, `label`) |
+| Shows the admin screens (add, enable, cap, retry) | Provides the config form an admin fills in |
+| Reserves a prize per new user, once, atomically | Says how it reads to a human (`describe`) |
+| Sends the claim message and handles the tap | Hands the prize over (`grant`) |
+| Keeps the ledger: status, error, invoice, attempts | Says whether the user must claim it (`requiresClaim`) |
+
+In the admin menu, a campaign has a **🎁 Prizes** screen. **Add a prize** lists every
+registered type, hands over to that type's own form, and attaches the result. Each prize
+has an optional **limit** (0 = unlimited), can be **disabled**, and has a **retry** button
+when hand-overs failed.
+
+### Shipped type
+
+**💰 Wallet credit** is registered automatically when
+[`user-wallet`](https://github.com/Telegram-Bot-Essentials/user-wallet) is installed.
+It is handed over the moment the user joins.
+
+### Registering your own type
+
+Implement `TelegramBotEssentials\Campaigns\Contracts\PrizeType` and register it from your
+service provider's `boot()`:
+
+```php
+prizeTypes()->register(new FreeServicePrize);
+```
+
+The config form extends `PrizeConfigForm`: name the type and turn the answers into the
+prize's config; campaigns attaches it and returns the admin to the prize list.
+
+```php
+class FreeServiceForm extends PrizeConfigForm
+{
+    protected string $type = 'FREE_SERVICE_PRIZE';
+    protected string $lang = 'my-package::free_service.wizard';
+
+    protected function prizeTypeKey(): string { return FreeServicePrize::KEY; }
+    public function steps(): array { return [/* Choice, Text, ... */]; }
+    protected function config(array $answers): array { return ['plan' => $answers['plan']]; }
+}
+```
+
+`grant(BotUser $user, array $config, CampaignPrizeGrant $grant)` runs for that user.
+**Throw to fail**: the ledger records the message and an admin can retry, which calls
+`grant()` again for the same grant, so it must be safe to run twice. Keep the ids of
+anything already created in `$grant->meta`.
+
+### Prizes that are an order
+
+For a reward that is an order of another package (a service, a plan), build the order and
+call `PrizeSettlement::pay($order, $grant)`. It creates the invoice and settles it with a
+`PrizePaymentAttempt` (a payment method that moves no money and is never offered on any
+invoice), so the order's own paid hook runs exactly as for a paying customer. On a retry,
+reuse `$grant->order` instead of creating another order: `pay()` then re-runs only the
+paid hook, never a second invoice or attempt.
+
+### Claiming
+
+A type with `requiresClaim() === true` is reserved as **pending**. The user gets one
+message listing their prizes with a claim button each, so nothing costly is created for
+someone who never uses it. Tapping the button runs `grant()`; a double tap hands the prize
+over once, and a forwarded button does nothing for anyone but its owner.
+
+### Consequences
+
+Read these before turning prizes on.
+
+- **Billing is now required.** The payment attempt model lives here, so
+  `telegram-bot-essentials/billing` moved from `suggest` to `require`.
+- **A prize invoice is settled at price 0.** `PrizeSettlement` sets the invoice's `price`
+  to 0 and keeps its `original_price`, so affiliate commission (worked out from `price`),
+  billing revenue reports and offers see a free order without knowing about prizes. The
+  invoice is still a *paid* invoice, so anything that counts paid invoices rather than
+  summing their price (for example a "paying customers" count in another package) will
+  include it. Campaign stats leave prize invoices out entirely, by
+  `PrizePaymentAttempt::isPrizeInvoice()`, which is also the marker other packages can use.
+- **A prize is not promised until it is claimed.** A reserved prize takes a slot of the
+  prize's limit at once, so an unclaimed prize still counts against the cap. There is no
+  claim-by date yet, so abandoned claims hold their slot for good.
+- **A lost claim message strands the prize.** Nothing re-sends it, and there is no
+  "My prizes" screen yet. Both are deferred.
+- **Failure keeps the slot.** A failed grant is owed to the user, so it still counts
+  against the cap until an admin retries it.
+- **The reason for a failure inside an order's paid hook is generic.** Billing runs the hook
+  through essence's exception handler, which tells the user "something went wrong" and
+  rethrows a bare HTTP 203. The ledger stores that, not the original message; the original
+  is in the exception report. A failure raised directly in `grant()` keeps its real message.
+- **The user sees billing's own "payment accepted" message** when an order-based prize is
+  settled, because the invoice goes through the normal paid flow.
+- **Only new users get prizes**, and each user at most one attribution, so at most one of
+  each prize per user. Throwaway Telegram accounts can still farm prizes: set limits.
+- **Prize types are a public contract** other packages depend on. It stays at `0.0.x` and
+  may change between releases.
 
 ## Stats
 
 Each campaign screen shows the users it brought in and the users it turned away, by
-reason. With [`billing`](https://github.com/Telegram-Bot-Essentials/billing) installed
-it also shows **paying users and revenue**, worked out live from paid invoices of the
+reason, and **paying users and revenue**, worked out live from paid invoices of the
 campaign's users. Nothing is stored: a revoked invoice stops being `paid` and drops
-out. Wallet top-ups are left out when
-[`user-wallet`](https://github.com/Telegram-Bot-Essentials/user-wallet) is installed,
-since money moved into a wallet is not a sale.
+out. Invoices settled as a prize and wallet top-ups (when
+[`user-wallet`](https://github.com/Telegram-Bot-Essentials/user-wallet) is installed)
+are left out, since neither is a sale.
 
 ## With user-management
 
