@@ -4,6 +4,7 @@ namespace TelegramBotEssentials\Campaigns\Services;
 
 use TelegramBotEssentials\Billing\Models\Invoice;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
+use TelegramBotEssentials\Campaigns\Models\PrizePaymentAttempt;
 use TelegramBotEssentials\UserWallet\Models\CreditOrder;
 
 class CampaignStats
@@ -13,8 +14,8 @@ class CampaignStats
      *     joined: int,
      *     misses: int,
      *     missesByReason: array<string, int>,
-     *     paidUsers: int|null,
-     *     revenue: string|null
+     *     paidUsers: int,
+     *     revenue: string
      * }
      */
     public static function for(Campaign $campaign): array
@@ -30,8 +31,8 @@ class CampaignStats
             'joined' => $campaign->attributions()->count(),
             'misses' => array_sum($missesByReason),
             'missesByReason' => $missesByReason,
-            'paidUsers' => $revenue['paidUsers'] ?? null,
-            'revenue' => $revenue['revenue'] ?? null,
+            'paidUsers' => $revenue['paidUsers'],
+            'revenue' => $revenue['revenue'],
         ];
     }
 
@@ -47,7 +48,8 @@ class CampaignStats
 
     /**
      * Paid-user and revenue figures, worked out live from paid invoices of
-     * the users the campaign brought in. Null when billing is not installed.
+     * the users the campaign brought in. Invoices settled as a prize are a
+     * giveaway, not a sale, and are left out.
      *
      * Nothing is stored: an invoice that is revoked stops being `paid`, and
      * a soft-deleted invoice is left out, so the figures follow the invoices
@@ -55,16 +57,15 @@ class CampaignStats
      * since money moved into a wallet is not a sale (only when user-wallet
      * is installed, so it stays an optional dependency).
      *
-     * @return array{paidUsers: int, revenue: string}|null
+     * @return array{paidUsers: int, revenue: string}
      */
-    private static function revenue(Campaign $campaign): ?array
+    private static function revenue(Campaign $campaign): array
     {
-        if (! class_exists(Invoice::class)) {
-            return null;
-        }
-
         $invoices = Invoice::query()
             ->where('status', 'paid')
+            ->where(fn ($query) => $query
+                ->whereNull('payment_attempt_type')
+                ->orWhere('payment_attempt_type', '!=', (new PrizePaymentAttempt)->getMorphClass()))
             ->whereIn('bot_user_id', $campaign->attributions()->select('bot_user_id'));
 
         if (class_exists(CreditOrder::class)) {
