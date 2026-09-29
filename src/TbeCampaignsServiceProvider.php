@@ -5,9 +5,14 @@ namespace TelegramBotEssentials\Campaigns;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use TelegramBotEssentials\Campaigns\Events\CampaignUserAttributed;
 use TelegramBotEssentials\Campaigns\Listeners\HandleCampaignDeepLink;
+use TelegramBotEssentials\Campaigns\Listeners\HandleCampaignPrizes;
 use TelegramBotEssentials\Campaigns\Models\CampaignAttribution;
+use TelegramBotEssentials\Campaigns\Prizes\WalletCreditPrize;
+use TelegramBotEssentials\Campaigns\Services\PrizeTypes;
 use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Admin\CampaignsQuery;
+use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQuery;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin\CampaignsAnswer;
 use TelegramBotEssentials\Essence\Events\BotDeepLinkReceived;
@@ -15,10 +20,14 @@ use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\UserManagement\DTOs\BotUserFilter;
 use TelegramBotEssentials\UserManagement\DTOs\UserSection;
 use TelegramBotEssentials\UserManagement\Enums\SectionMode;
+use TelegramBotEssentials\UserWallet\Services\Wallet;
 
 class TbeCampaignsServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->singleton(PrizeTypes::class);
+    }
 
     public function boot(): void
     {
@@ -30,6 +39,7 @@ class TbeCampaignsServiceProvider extends ServiceProvider
         // CallbackQueries, StateAnswers and Forms register themselves here.
         callbackQueryBus()->addCallbackQueries([
             CampaignsQuery::class,
+            PrizeClaimQuery::class,
         ]);
 
         stateAnswerBus()->addStateAnswers([
@@ -46,6 +56,13 @@ class TbeCampaignsServiceProvider extends ServiceProvider
         // README.
 
         Event::listen(BotDeepLinkReceived::class, HandleCampaignDeepLink::class);
+        Event::listen(CampaignUserAttributed::class, HandleCampaignPrizes::class);
+
+        // Wallet credit is the one prize campaigns ships; every other type is
+        // registered by the package or app that knows how to hand it over.
+        if (class_exists(Wallet::class)) {
+            prizeTypes()->register(new WalletCreditPrize);
+        }
 
         BotUser::resolveRelationUsing('campaignAttribution', function (BotUser $user) {
             return $user->hasOne(CampaignAttribution::class, 'bot_user_id', 'id');
