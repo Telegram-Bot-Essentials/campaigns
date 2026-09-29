@@ -4,7 +4,9 @@ namespace TelegramBotEssentials\Campaigns\Telegram\Features\Admin;
 
 use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Keyboard\Keyboard;
+use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
+use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Services\CampaignLink;
 use TelegramBotEssentials\Campaigns\Services\CampaignQr;
 use TelegramBotEssentials\Campaigns\Services\CampaignStats;
@@ -105,6 +107,13 @@ class CampaignsFeature
 
         $replyMarkup->row([
             Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::prizes.keys.prizes'),
+                'callback_data' => encodeCallback(self::$type, 'prizes', [$campaign->id, $lastPage]),
+            ]),
+        ]);
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
                 'text' => __('tbe-campaigns::campaigns.main.keys.editName'),
                 'callback_data' => encodeCallback(self::$type, 'editName', [$campaign->id, $lastPage]),
             ]),
@@ -172,6 +181,131 @@ class CampaignsFeature
         );
     }
 
+    /** The prizes a campaign hands out, with how far each cap is used. */
+    public static function prizes(Campaign $campaign, int $lastPage = 1): TelegramResponse
+    {
+        $prizes = $campaign->prizes()->orderBy('id')->get();
+
+        $replyMarkup = Keyboard::make()->inline();
+
+        foreach ($prizes as $prize) {
+            $replyMarkup->row([
+                Keyboard::inlineButton([
+                    'text' => self::prizeLabel($prize),
+                    'callback_data' => encodeCallback(self::$type, 'prize', [$prize->id, $lastPage]),
+                ]),
+            ]);
+        }
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::prizes.keys.add'),
+                'callback_data' => encodeCallback(self::$type, 'addPrize', [$campaign->id, $lastPage]),
+            ]),
+        ]);
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::campaigns.main.keys.backToCampaign'),
+                'callback_data' => encodeCallback(self::$type, 'show', [$campaign->id, $lastPage]),
+            ]),
+        ]);
+
+        return new TelegramResponse(
+            text: __($prizes->isEmpty() ? 'tbe-campaigns::prizes.admin.empty' : 'tbe-campaigns::prizes.admin.list', ['name' => e($campaign->name)]),
+            replyMarkup: $replyMarkup,
+            parseMode: 'HTML'
+        );
+    }
+
+    /** The registered prize types to pick from. */
+    public static function addPrize(Campaign $campaign, int $lastPage = 1): TelegramResponse
+    {
+        $replyMarkup = Keyboard::make()->inline();
+
+        foreach (prizeTypes()->all() as $type) {
+            $replyMarkup->row([
+                Keyboard::inlineButton([
+                    'text' => $type->label(),
+                    'callback_data' => encodeCallback(self::$type, 'pickPrizeType', [$campaign->id, $type->key(), $lastPage]),
+                ]),
+            ]);
+        }
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::campaigns.main.keys.backToCampaign'),
+                'callback_data' => encodeCallback(self::$type, 'prizes', [$campaign->id, $lastPage]),
+            ]),
+        ]);
+
+        return new TelegramResponse(
+            text: __(prizeTypes()->all() === [] ? 'tbe-campaigns::prizes.admin.noTypes' : 'tbe-campaigns::prizes.admin.pickType'),
+            replyMarkup: $replyMarkup,
+            parseMode: 'HTML'
+        );
+    }
+
+    public static function prize(CampaignPrize $prize, int $lastPage = 1): TelegramResponse
+    {
+        $failed = $prize->grants()->where('status', PrizeGrantStatus::Failed)->count();
+        $pending = $prize->grants()->where('status', PrizeGrantStatus::Pending)->count();
+        $granted = $prize->grants()->where('status', PrizeGrantStatus::Granted)->count();
+
+        $replyMarkup = Keyboard::make()->inline();
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => $prize->active ? __('tbe-campaigns::prizes.keys.disable') : __('tbe-campaigns::prizes.keys.enable'),
+                'callback_data' => encodeCallback(self::$type, 'togglePrize', [$prize->id, $lastPage]),
+            ]),
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::prizes.keys.editCap'),
+                'callback_data' => encodeCallback(self::$type, 'editCap', [$prize->id, $lastPage]),
+            ]),
+        ]);
+
+        if ($failed > 0) {
+            $replyMarkup->row([
+                Keyboard::inlineButton([
+                    'text' => __('tbe-campaigns::prizes.keys.retry', ['count' => $failed]),
+                    'callback_data' => encodeCallback(self::$type, 'retryPrize', [$prize->id, $lastPage]),
+                ]),
+            ]);
+        }
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::campaigns.main.keys.backToCampaign'),
+                'callback_data' => encodeCallback(self::$type, 'prizes', [$prize->campaign_id, $lastPage]),
+            ]),
+        ]);
+
+        return new TelegramResponse(
+            text: __('tbe-campaigns::prizes.admin.show', [
+                'prize' => e($prize->describe()),
+                'status' => $prize->active ? __('tbe-campaigns::campaigns.main.enabled') : __('tbe-campaigns::campaigns.main.disabled'),
+                'cap' => $prize->max_grants === null ? __('tbe-campaigns::campaigns.main.never') : (string) $prize->max_grants,
+                'used' => $prize->grants_count,
+                'granted' => $granted,
+                'pending' => $pending,
+                'failed' => $failed,
+            ]),
+            replyMarkup: $replyMarkup,
+            parseMode: 'HTML'
+        );
+    }
+
+    private static function prizeLabel(CampaignPrize $prize): string
+    {
+        return __('tbe-campaigns::prizes.admin.label', [
+            'badge' => $prize->active ? '✅' : '🚫',
+            'prize' => $prize->describe(),
+            'used' => $prize->grants_count,
+            'cap' => $prize->max_grants ?? '∞',
+        ]);
+    }
+
     private static function isLive(Campaign $campaign): bool
     {
         return $campaign->active && ! $campaign->isExpired();
@@ -187,7 +321,7 @@ class CampaignsFeature
     }
 
     /**
-     * @param  array{joined: int, misses: int, missesByReason: array<string, int>, paidUsers: int|null, revenue: string|null}  $stats
+     * @param  array{joined: int, misses: int, missesByReason: array<string, int>, paidUsers: int, revenue: string}  $stats
      */
     private static function statsText(array $stats): string
     {
@@ -206,10 +340,8 @@ class CampaignsFeature
             ]);
         }
 
-        if ($stats['paidUsers'] !== null && $stats['revenue'] !== null) {
-            $lines[] = __('tbe-campaigns::campaigns.main.stats.paidUsers', ['count' => $stats['paidUsers']]);
-            $lines[] = __('tbe-campaigns::campaigns.main.stats.revenue', ['amount' => currency()->priceFormat($stats['revenue'])]);
-        }
+        $lines[] = __('tbe-campaigns::campaigns.main.stats.paidUsers', ['count' => $stats['paidUsers']]);
+        $lines[] = __('tbe-campaigns::campaigns.main.stats.revenue', ['amount' => currency()->priceFormat($stats['revenue'])]);
 
         return implode("\r\n", $lines);
     }
