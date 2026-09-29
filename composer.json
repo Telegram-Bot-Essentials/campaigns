@@ -7,7 +7,7 @@
         "ext-gd": "*",
         "chillerlan/php-qrcode": "^6.0",
         "laravel/framework": "^12 || ^13",
-        "telegram-bot-essentials/essence": "^0.13"
+        "telegram-bot-essentials/essence": ">=0.13"
     },
     "suggest": {
         "telegram-bot-essentials/billing": "Adds paid-user and revenue figures to each campaign.",
