@@ -80,6 +80,12 @@ class Campaign extends Model
         return $this->hasMany(CampaignAttribution::class);
     }
 
+    /** @return HasMany<CampaignPrize, $this> */
+    public function prizes(): HasMany
+    {
+        return $this->hasMany(CampaignPrize::class);
+    }
+
     /** @return HasMany<CampaignMiss, $this> */
     public function misses(): HasMany
     {
