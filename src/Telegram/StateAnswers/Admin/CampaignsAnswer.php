@@ -5,6 +5,7 @@ namespace TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
+use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Essence\Enums\AllowableFields;
 use TelegramBotEssentials\Essence\Enums\Roles;
@@ -73,6 +74,24 @@ class CampaignsAnswer extends StateAnswer
         wHook()->user()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::show($campaign, $lastPage));
+    }
+
+    /**
+     * 0 means unlimited. Lowering the cap below what is already reserved
+     * only stops new grants; the users who already have one keep it.
+     *
+     * @throws ValidationException
+     */
+    public function updateCap(CampaignPrize $prize, int $lastPage): void
+    {
+        $cap = $this->answerText();
+
+        Validator::validate(['cap' => $cap], ['cap' => 'required|integer|min:0|max:10000000']);
+
+        $prize->update(['max_grants' => (int) $cap === 0 ? null : (int) $cap]);
+        wHook()->user()->changeState();
+
+        $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::prize($prize, $lastPage));
     }
 
     private function answerText(): string
