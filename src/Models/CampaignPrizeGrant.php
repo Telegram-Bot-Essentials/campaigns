@@ -25,6 +25,12 @@ use TelegramBotEssentials\Essence\Models\BotUser;
  * @property array<string, mixed>|null $meta
  * @property int|null $invoice_id
  * @property ?Carbon $granted_at
+ * @property string $method
+ * @property array<string, mixed>|null $method_config
+ * @property int|null $message_id
+ * @property int|null $prompt_message_id
+ * @property int $plays
+ * @property int|null $last_throw_id
  * @property string|null $order_type
  * @property int|null $order_id
  * @property-read CampaignPrize $prize
@@ -43,6 +49,11 @@ class CampaignPrizeGrant extends Model
         return [
             'status' => PrizeGrantStatus::class,
             'meta' => 'array',
+            'method_config' => 'array',
+            'message_id' => 'integer',
+            'prompt_message_id' => 'integer',
+            'last_throw_id' => 'integer',
+            'plays' => 'integer',
             'granted_at' => 'datetime',
         ];
     }

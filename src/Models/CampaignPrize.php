@@ -20,6 +20,8 @@ use TelegramBotEssentials\Campaigns\Contracts\PrizeType;
  * @property int|null $max_grants
  * @property int $grants_count
  * @property bool $active
+ * @property string $method
+ * @property array<string, mixed>|null $method_config
  */
 class CampaignPrize extends Model
 {
@@ -32,6 +34,7 @@ class CampaignPrize extends Model
         return [
             'config' => 'array',
             'active' => 'boolean',
+            'method_config' => 'array',
         ];
     }
 
@@ -56,5 +59,11 @@ class CampaignPrize extends Model
     public function describe(): string
     {
         return $this->prizeType()?->describe($this->config) ?? $this->type;
+    }
+
+    /** How new grants of this prize are received, read as an admin would. */
+    public function describeMethod(): string
+    {
+        return claimMethods()->get($this->method)?->describe($this->method_config ?? []) ?? $this->method;
     }
 }
