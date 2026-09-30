@@ -39,11 +39,6 @@ class WalletCreditPrize implements PrizeType
         return WalletPrizeForm::class;
     }
 
-    public function requiresClaim(): bool
-    {
-        return false;
-    }
-
     public function grant(BotUser $user, array $config, CampaignPrizeGrant $grant): void
     {
         $amount = $config['amount'] ?? '0';
