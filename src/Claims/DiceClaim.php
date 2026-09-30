@@ -2,21 +2,20 @@
 
 namespace TelegramBotEssentials\Campaigns\Claims;
 
-use Illuminate\Support\Facades\DB;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use TelegramBotEssentials\Campaigns\Contracts\ClaimMethod;
 use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
-use TelegramBotEssentials\Campaigns\Services\PrizeMessages;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\Claims\DiceClaimForm;
+use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Member\DiceAnswer;
+use TelegramBotEssentials\Essence\Models\MessageMeta;
+use TelegramBotEssentials\Essence\Telegram\StateAnswers\StateAnswer;
 
 /**
  * The dice game. The user taps to play, the bot asks for a 🎲, and the prize
  * is theirs if the number they throw is one the admin picked. The admin also
- * sets how many throws they get. The throw itself is handled by
- * `DiceThrowMatcher`, which keeps no per-user state: each throw is tied to
- * its prize by the message it replies to, so several prizes can be played at
- * the same time.
+ * sets how many throws they get. The game is an essence state (`DiceAnswer`),
+ * so only one runs at a time and it can be cancelled like any other flow.
  *
  * Config: `numbers` (list of 1-6 that win) and `tries` (throws allowed).
  */
@@ -60,50 +59,80 @@ class DiceClaim implements ClaimMethod
     }
 
     /**
-     * Opens the game: the bot asks for a dice as a reply, and the announcement
-     * loses its button. The grant stays locked while the prompt goes out, on
-     * purpose: a double tap must wait and see the prompt, not send a second one.
+     * Opens the game the way any essence flow opens one: the prize message is
+     * locked with a cancel button, the user's state is set, and the bot asks
+     * for a 🎲. Whatever the user was in the middle of, including another
+     * game, is cancelled first, so only one game is open at a time.
      */
     public function start(CampaignPrizeGrant $grant): ?string
     {
-        $alert = DB::transaction(function () use ($grant): ?string {
-            $locked = CampaignPrizeGrant::query()->whereKey($grant->id)->lockForUpdate()->first();
-
-            if ($locked === null || $locked->status !== PrizeGrantStatus::Pending) {
-                return __('tbe-campaigns::prizes.claim.already');
-            }
-
-            if ($locked->prompt_message_id !== null) {
-                return __('tbe-campaigns::claims.dice.playing');
-            }
-
-            $config = $locked->method_config ?? [];
-
-            try {
-                $prompt = wHook()->api()->sendMessage(array_filter([
-                    'chat_id' => $locked->botUser->telegramUser->peer_id,
-                    'text' => __('tbe-campaigns::claims.dice.prompt', [
-                        'prize' => e($locked->prize->describe()),
-                        'numbers' => implode(', ', self::numbers($config)),
-                        'tries' => self::tries($config),
-                    ]),
-                    'parse_mode' => 'HTML',
-                    'reply_parameters' => $locked->message_id === null ? null : ['message_id' => $locked->message_id, 'allow_sending_without_reply' => true],
-                ]));
-            } catch (TelegramSDKException) {
-                return __('tbe-campaigns::claims.dice.notStarted');
-            }
-
-            $locked->forceFill(['prompt_message_id' => $prompt->messageId])->save();
-
-            return null;
-        });
-
-        if ($alert === null) {
-            app(PrizeMessages::class)->rewrite($grant, __('tbe-campaigns::claims.dice.inProgress', ['prize' => $grant->prize->describe()]));
+        if ($grant->status !== PrizeGrantStatus::Pending) {
+            return __('tbe-campaigns::prizes.claim.already');
         }
 
-        return $alert;
+        $this->cancelOpenProcess();
+
+        $config = $grant->method_config ?? [];
+
+        $messageMeta = MessageMeta::makeWithCurrentMessage();
+        $messageMeta->cancelableLockAction(__('tbe-campaigns::claims.dice.lockLabel'));
+
+        wHook()->user()->changeState(encodeAnswerState(DiceAnswer::TYPE, 'throw', [
+            'grant' => $grant->id,
+            'message_meta' => $messageMeta->id,
+        ]));
+
+        try {
+            $prompt = wHook()->api()->sendMessage([
+                'chat_id' => wHook()->peerId(),
+                'text' => __('tbe-campaigns::claims.dice.prompt', [
+                    'prize' => e($grant->prize->describe()),
+                    'numbers' => implode(', ', self::numbers($config)),
+                    'tries' => self::tries($config) - $grant->plays,
+                ]),
+                'parse_mode' => 'HTML',
+                'reply_markup' => wHook()->user()->getKeyboard(),
+            ]);
+        } catch (TelegramSDKException) {
+            // Nothing was asked, so leave the user where they were.
+            wHook()->user()->changeState();
+            $messageMeta->revertAction();
+
+            return __('tbe-campaigns::claims.dice.notStarted');
+        }
+
+        // A throw must come after this message: ids only grow within a chat.
+        $grant->forceFill(['prompt_message_id' => $prompt->messageId])->save();
+
+        return null;
+    }
+
+    /**
+     * Ends whatever the user has open, as essence does when a command or a
+     * menu key arrives: the state answer behind it is told to cancel (which
+     * puts its message back) and the state is cleared. Essence only does this
+     * for messages, not for a button tap, so it is done here.
+     */
+    private function cancelOpenProcess(): void
+    {
+        $state = wHook()->requestState();
+
+        if (! is_string($state) || $state === '') {
+            return;
+        }
+
+        $decoded = decodeAnswerState($state);
+        $open = stateAnswerBus()->getStateAnswerTypes()[$decoded['type'] ?? ''] ?? null;
+
+        $answer = is_object($open) ? app($open::class) : null;
+
+        if ($answer instanceof StateAnswer) {
+            $answer->setParams($decoded['params']);
+            $answer->setMethod('cancel');
+            $answer->cancel();
+        }
+
+        wHook()->user()->changeState();
     }
 
     /** Persian and Arabic-Indic digits and the Persian comma as their ASCII forms, as an admin types them. */

@@ -2,17 +2,14 @@
 
 namespace TelegramBotEssentials\Campaigns\Claims;
 
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Telegram\Bot\Objects\Message;
 use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
-use TelegramBotEssentials\Essence\Models\BotUser;
 
 /**
- * The rules of a dice throw: which prize it is for, whether it counts, and
- * what it scored. No Telegram output happens here; `DiceThrowMatcher` tells
- * the user.
+ * The rules of a dice throw: whether it counts, and what it scored. No
+ * Telegram output happens here; `DiceAnswer` tells the user.
  */
 class DiceGame
 {
@@ -31,39 +28,6 @@ class DiceGame
     public static function int(mixed $value): int
     {
         return is_numeric($value) ? (int) $value : 0;
-    }
-
-    /**
-     * The user's dice games waiting for a throw.
-     *
-     * @return Collection<int, CampaignPrizeGrant>
-     */
-    public function open(BotUser $user): Collection
-    {
-        return CampaignPrizeGrant::query()
-            ->where('bot_user_id', $user->id)
-            ->where('method', DiceClaim::KEY)
-            ->where('status', PrizeGrantStatus::Pending)
-            ->whereNotNull('prompt_message_id')
-            ->get();
-    }
-
-    /**
-     * The game a throw is for: the one whose prize message or prompt it
-     * replies to, or the only open game when it is not a reply at all. Null
-     * when that is ambiguous.
-     *
-     * @param  Collection<int, CampaignPrizeGrant>  $open
-     */
-    public function locate(Collection $open, Message $message): ?CampaignPrizeGrant
-    {
-        $repliedTo = data_get($message->get('reply_to_message'), 'message_id');
-
-        if ($repliedTo !== null) {
-            return $open->first(fn (CampaignPrizeGrant $grant) => in_array($repliedTo, [$grant->message_id, $grant->prompt_message_id], true));
-        }
-
-        return $open->count() === 1 ? $open->first() : null;
     }
 
     /** Why the message cannot count as a throw for the grant, or null when it can. */
