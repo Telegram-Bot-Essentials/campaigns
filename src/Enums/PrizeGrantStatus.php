@@ -14,4 +14,7 @@ enum PrizeGrantStatus: string
 
     /** The hand-over threw. The user is still owed the prize: an admin can retry. */
     case Failed = 'failed';
+
+    /** The user played for it and used up their tries. Final, and the slot it held is free again. */
+    case Lost = 'lost';
 }
