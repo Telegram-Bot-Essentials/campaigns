@@ -28,11 +28,37 @@ class PrizeClaimQuery extends CallbackQuery
 
         $status = app(PrizeGranting::class)->claim($grant);
 
-        $this->alert(match ($status) {
-            PrizeGrantStatus::Granted => __('tbe-campaigns::prizes.claim.granted', ['prize' => $grant->prize->describe()]),
-            PrizeGrantStatus::Failed => __('tbe-campaigns::prizes.claim.failed'),
-            default => __('tbe-campaigns::prizes.claim.already'),
-        });
+        $prize = $grant->prize->describe();
+
+        // The message settles on the outcome and loses its button. Anything
+        // else (another tap is mid-claim) leaves it as it is.
+        $outcome = match ($status) {
+            PrizeGrantStatus::Granted => __('tbe-campaigns::prizes.notify.received', ['prize' => $prize]),
+            PrizeGrantStatus::Failed => __('tbe-campaigns::prizes.notify.failed', ['prize' => $prize]),
+            default => null,
+        };
+
+        if ($outcome !== null) {
+            $this->settle($outcome);
+        } else {
+            $this->alert(__('tbe-campaigns::prizes.claim.already'));
+        }
+    }
+
+    /** Replaces the claim message's text and drops its inline keyboard. */
+    private function settle(string $text): void
+    {
+        $message = wHook()->update()->callbackQuery?->message;
+
+        try {
+            wHook()->api()->editMessageText([
+                'chat_id' => $message?->chat->id,
+                'message_id' => $message?->messageId,
+                'text' => __('tbe-campaigns::prizes.notify.title')."\r\n\r\n".$text,
+            ]);
+            wHook()->api()->answerCallbackQuery(['callback_query_id' => wHook()->update()->callbackQuery?->id]);
+        } catch (TelegramSDKException) {
+        }
     }
 
     private function alert(string $text): void
