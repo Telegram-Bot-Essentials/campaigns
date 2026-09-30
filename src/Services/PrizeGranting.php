@@ -25,9 +25,9 @@ use Throwable;
 class PrizeGranting
 {
     /**
-     * Reserves every live prize of the attribution's campaign for the user,
-     * hands over the ones that need no claim, and tells the user about all
-     * of them in one message. Safe to run twice for the same attribution.
+     * Reserves every live prize of the attribution's campaign for the user
+     * and sends one message per prize with a claim button; nothing is granted
+     * until they tap. Safe to run twice for the same attribution.
      */
     public function issue(CampaignAttribution $attribution): void
     {
@@ -37,33 +37,12 @@ class PrizeGranting
             ->orderBy('id')
             ->get();
 
-        $lines = [];
-        $claimable = [];
-
         foreach ($prizes as $prize) {
             $grant = $this->reserve($prize, $attribution);
 
-            if ($grant === null) {
-                continue;
+            if ($grant !== null) {
+                $this->notify($attribution, $grant);
             }
-
-            $type = $prize->prizeType();
-
-            if ($type !== null && ! $type->requiresClaim()) {
-                $status = $this->claim($grant);
-                $lines[] = $status === PrizeGrantStatus::Granted
-                    ? __('tbe-campaigns::prizes.notify.granted', ['prize' => $prize->describe()])
-                    : __('tbe-campaigns::prizes.notify.instantFailed', ['prize' => $prize->describe()]);
-
-                continue;
-            }
-
-            $lines[] = __('tbe-campaigns::prizes.notify.claimable', ['prize' => $prize->describe()]);
-            $claimable[] = $grant;
-        }
-
-        if ($lines !== []) {
-            $this->notify($attribution, $lines, $claimable);
         }
     }
 
@@ -181,33 +160,26 @@ class PrizeGranting
         return $locked->status;
     }
 
-    /**
-     * @param  list<string>  $lines
-     * @param  list<CampaignPrizeGrant>  $claimable
-     */
-    private function notify(CampaignAttribution $attribution, array $lines, array $claimable): void
+    private function notify(CampaignAttribution $attribution, CampaignPrizeGrant $grant): void
     {
-        $markup = Keyboard::make()->inline();
-
-        foreach ($claimable as $grant) {
-            $markup->row([
-                Keyboard::inlineButton([
-                    'text' => __('tbe-campaigns::prizes.keys.claim', ['prize' => $grant->prize->describe()]),
-                    'callback_data' => encodeCallback(PrizeClaimQuery::TYPE, 'claim', [$grant->id]),
-                ]),
-            ]);
-        }
+        $prize = $grant->prize->describe();
 
         try {
-            wHook()->api()->sendMessage(array_filter([
+            wHook()->api()->sendMessage([
                 'chat_id' => wHook()->user()->telegramUser->peer_id,
-                'text' => __('tbe-campaigns::prizes.notify.title')."\r\n\r\n".implode("\r\n", $lines),
-                'reply_markup' => $claimable === [] ? null : $markup,
-            ]));
+                'text' => __('tbe-campaigns::prizes.notify.title')."\r\n\r\n".__('tbe-campaigns::prizes.notify.claimable', ['prize' => $prize]),
+                'reply_markup' => Keyboard::make()->inline()->row([
+                    Keyboard::inlineButton([
+                        'text' => __('tbe-campaigns::prizes.keys.claim', ['prize' => $prize]),
+                        'callback_data' => encodeCallback(PrizeClaimQuery::TYPE, 'claim', [$grant->id]),
+                    ]),
+                ]),
+            ]);
         } catch (Throwable $e) {
-            // The grants are recorded; a failed notification must not undo the join.
-            tbeLog('campaigns')->error('Could not tell attribution #{attribution_id} about their prizes: '.$e->getMessage(), [
+            // The grant is recorded; a failed notification must not undo the join.
+            tbeLog('campaigns')->error('Could not tell attribution #{attribution_id} about prize grant #{grant_id}: '.$e->getMessage(), [
                 'attribution_id' => $attribution->id,
+                'grant_id' => $grant->id,
                 'exception' => $e,
             ]);
         }
