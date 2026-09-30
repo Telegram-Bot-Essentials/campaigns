@@ -53,3 +53,9 @@ function lastBotText(): string
         ->filter()
         ->last();
 }
+
+/** An inline button press by the user with this peer id. */
+function pressAs(int $peer, string $type, string $method, array $params = []): void
+{
+    test()->postWebhookUpdate(test()->bot, test()->makeCallbackQueryUpdate(encodeCallback($type, $method, $params), peerId: $peer))->assertOk();
+}

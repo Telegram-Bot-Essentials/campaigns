@@ -27,11 +27,6 @@ beforeEach(function () {
     $this->prize = CampaignPrizes::attach($this->campaign, 'recording', []);
 });
 
-function pressAs(int $peer, string $type, string $method, array $params = []): void
-{
-    test()->postWebhookUpdate(test()->bot, test()->makeCallbackQueryUpdate(encodeCallback($type, $method, $params), peerId: $peer))->assertOk();
-}
-
 it('shows the prizes of a campaign to an admin', function () {
     pressAs(800, 'CAMPAIGNS', 'prizes', [$this->campaign->id, 1]);
 
