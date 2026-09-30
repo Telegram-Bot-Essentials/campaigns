@@ -5,6 +5,7 @@ return [
         'title' => '🎁 A welcome gift for you!',
         'claimable' => '🎁 :prize — tap below to claim it.',
         'received' => '✅ :prize — it is yours.',
+        'lost' => '😕 :prize — you did not win it this time.',
         'failed' => '⚠️ :prize — we could not give it to you right now. Support has been notified.',
     ],
     'keys' => [
@@ -21,6 +22,7 @@ return [
         'granted' => '🎉 Done! :prize',
         'failed' => '⚠️ We could not give you the gift right now. Support has been notified.',
         'already' => 'This gift was already claimed.',
+        'unavailable' => 'This way of receiving the gift is not available any more.',
     ],
     'admin' => [
         'empty' => '🎁 <b>:name</b> has no prizes yet. New users who join through it get nothing but the welcome.',
@@ -34,11 +36,13 @@ return [
         'show' => '🎁 <b>:prize</b>'
             ."\r\n"
             ."\r\n📌 Status: :status"
+            ."\r\n🎯 Received by: :method"
             ."\r\n🔢 Limit: :cap (reserved: :used)"
             ."\r\n"
             ."\r\n✅ Granted: :granted"
             ."\r\n⏳ Waiting to be claimed: :pending"
-            ."\r\n⚠️ Failed: :failed",
+            ."\r\n⚠️ Failed: :failed"
+            ."\r\n😕 Lost in the game: :lost",
         'cap' => [
             'label' => 'Prize limit',
             'prompt' => '🔢 How many users can get this prize in total? Send 0 for no limit:',
