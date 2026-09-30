@@ -70,7 +70,7 @@ one kind of reward.
 | Shows the admin screens (add, enable, cap, retry) | Provides the config form an admin fills in |
 | Reserves a prize per new user, once, atomically | Says how it reads to a human (`describe`) |
 | Sends the claim message and handles the tap | Hands the prize over (`grant`) |
-| Keeps the ledger: status, error, invoice, attempts | Says whether the user must claim it (`requiresClaim`) |
+| Keeps the ledger: status, error, invoice, attempts | Says what the prize is and describes it |
 
 In the admin menu, a campaign has a **🎁 Prizes** screen. **Add a prize** lists every
 registered type, hands over to that type's own form, and attaches the result. Each prize
@@ -123,10 +123,13 @@ paid hook, never a second invoice or attempt.
 
 ### Claiming
 
-A type with `requiresClaim() === true` is reserved as **pending**. The user gets one
-message listing their prizes with a claim button each, so nothing costly is created for
-someone who never uses it. Tapping the button runs `grant()`; a double tap hands the prize
-over once, and a forwarded button does nothing for anyone but its owner.
+Every prize is reserved as **pending**, wallet credit included, so the user sees
+something waiting for them and taps to receive it. Each prize gets its own
+message with its own claim button, and nothing costly is created for someone who never
+uses it. Tapping the button runs `grant()`, then the message is rewritten to say the prize
+was received (or that it failed) and loses its button. A double tap hands the prize over
+once, and a forwarded button does nothing for anyone but its owner. An admin retry of a
+failed grant does not re-message the user.
 
 ### Consequences
 
