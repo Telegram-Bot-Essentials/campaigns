@@ -131,6 +131,38 @@ was received (or that it failed) and loses its button. A double tap hands the pr
 once, and a forwarded button does nothing for anyone but its owner. An admin retry of a
 failed grant does not re-message the user.
 
+### Claim methods
+
+How the user earns the button's outcome is a second registry, separate from the prize
+type: the type says *what* they get, the claim method says *how* they get it. An admin
+picks it per prize from the prize screen (**🎯 Received by**). A prize starts as a plain tap.
+
+| Method | What the user does |
+| --- | --- |
+| `click` | Taps the button. |
+| `dice` | Taps **Play**, then sends a 🎲 as a reply to the bot. They win if it lands on a number the admin picked (`1-6`, comma separated), and get the admin's number of tries. |
+
+Register another with `claimMethods()->register(new MyMethod)` from a provider's `boot()`.
+Implement `Contracts\ClaimMethod`: `key`, `label`, `describe`, an optional `configForm()`
+(extend `Telegram\Forms\ClaimMethodConfigForm`, started with `['prize' => id, 'lastPage' => n]`),
+`buttonLabel` and `start($grant)`, which runs when the user taps. When the user has done
+what the method asks, call `PrizeGranting::claim($grant)` to hand the prize over, or
+`forfeit($grant)` to end it as lost. Then `PrizeMessages::settle()` rewrites the message.
+
+- **The method is copied onto the grant when it is issued.** Changing a prize's method
+  later only affects users who join afterwards.
+- **The dice game keeps no per-user state.** Each throw is tied to its prize by the message
+  it replies to (the prize message or the bot's prompt), so several prizes can be played at
+  once. A throw that is not a reply is accepted only when exactly one game is open;
+  otherwise the user is asked which prize it is for.
+- **Cheating.** A forwarded dice keeps its value, so a message with any forward field, a
+  `via_bot`, an emoji other than 🎲, or an id lower than the bot's prompt does not count.
+  Rejected throws do not use up a try, and a redelivered update counts once.
+- **A lost game frees its slot.** The grant ends as `lost`, the prize's reserved count drops
+  by one, and the user is not offered that prize again.
+- **A throw ends any form the user had open.** Essence runs a text matcher through a path that
+  cancels the user's current process. The matcher only runs while a game is open.
+
 ### Consequences
 
 Read these before turning prizes on.

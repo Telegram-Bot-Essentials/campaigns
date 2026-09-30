@@ -26,12 +26,19 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
   grant ledger with status, error and attempts.
 - Wallet-credit prize, registered when user-wallet is installed.
 - `PrizeConfigForm` base class for a prize type's config form.
+- Claim methods: a `ClaimMethod` contract and `claimMethods()` registry, chosen per prize
+  from the admin prize screen. Ships `click` (one tap) and `dice` (the user throws a 🎲;
+  the admin picks the winning numbers and the number of tries). A lost game frees its cap
+  slot (`lost` status). Forwarded, via-bot, non-🎲 and stale dice are rejected.
+- `PrizeMessages` and one message per prize that settles on the outcome.
 - `PrizePaymentAttempt` and `PrizeSettlement`: settle the invoice of an order-based
   prize without a real payment, retry-safe, at price 0 (`original_price` is kept).
   `PrizePaymentAttempt::isPrizeInvoice()` is the sale marker.
 
 ### Changed
 
+- **Requires essence `>=0.15`** (text matchers, used to take the dice throw).
+- Every prize is claim-only: `PrizeType::requiresClaim()` was removed.
 - **`telegram-bot-essentials/billing` is now required** (was suggested).
 - Campaign stats exclude invoices settled as a prize.
 
