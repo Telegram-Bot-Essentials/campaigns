@@ -246,11 +246,39 @@ class CampaignsFeature
         );
     }
 
+    public static function pickMethod(CampaignPrize $prize, int $lastPage = 1): TelegramResponse
+    {
+        $replyMarkup = Keyboard::make()->inline();
+
+        foreach (claimMethods()->all() as $method) {
+            $replyMarkup->row([
+                Keyboard::inlineButton([
+                    'text' => ($method->key() === $prize->method ? '✅ ' : '').$method->label(),
+                    'callback_data' => encodeCallback(self::$type, 'chooseMethod', [$prize->id, $method->key(), $lastPage]),
+                ]),
+            ]);
+        }
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::claims.keys.back'),
+                'callback_data' => encodeCallback(self::$type, 'prize', [$prize->id, $lastPage]),
+            ]),
+        ]);
+
+        return new TelegramResponse(
+            text: __('tbe-campaigns::claims.admin.pick'),
+            replyMarkup: $replyMarkup,
+            parseMode: 'HTML'
+        );
+    }
+
     public static function prize(CampaignPrize $prize, int $lastPage = 1): TelegramResponse
     {
         $failed = $prize->grants()->where('status', PrizeGrantStatus::Failed)->count();
         $pending = $prize->grants()->where('status', PrizeGrantStatus::Pending)->count();
         $granted = $prize->grants()->where('status', PrizeGrantStatus::Granted)->count();
+        $lost = $prize->grants()->where('status', PrizeGrantStatus::Lost)->count();
 
         $replyMarkup = Keyboard::make()->inline();
 
@@ -262,6 +290,13 @@ class CampaignsFeature
             Keyboard::inlineButton([
                 'text' => __('tbe-campaigns::prizes.keys.editCap'),
                 'callback_data' => encodeCallback(self::$type, 'editCap', [$prize->id, $lastPage]),
+            ]),
+        ]);
+
+        $replyMarkup->row([
+            Keyboard::inlineButton([
+                'text' => __('tbe-campaigns::claims.keys.method', ['method' => $prize->describeMethod()]),
+                'callback_data' => encodeCallback(self::$type, 'pickMethod', [$prize->id, $lastPage]),
             ]),
         ]);
 
@@ -290,6 +325,8 @@ class CampaignsFeature
                 'granted' => $granted,
                 'pending' => $pending,
                 'failed' => $failed,
+                'lost' => $lost,
+                'method' => e($prize->describeMethod()),
             ]),
             replyMarkup: $replyMarkup,
             parseMode: 'HTML'
