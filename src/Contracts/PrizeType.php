@@ -38,12 +38,6 @@ interface PrizeType
     public function configForm(): string;
 
     /**
-     * True when the user has to tap a button to receive the prize (a service
-     * provisioned on demand). False hands it over as soon as they join.
-     */
-    public function requiresClaim(): bool;
-
-    /**
      * Hands the prize over. Throw to record the grant as failed: an admin
      * can then retry, which calls this again for the same grant, so it must
      * be safe to run twice. Keep the ids of anything already created in
