@@ -8,7 +8,7 @@
         "chillerlan/php-qrcode": "^6.0",
         "laravel/framework": "^12 || ^13",
         "telegram-bot-essentials/billing": "~0.0.32",
-        "telegram-bot-essentials/essence": ">=0.15"
+        "telegram-bot-essentials/essence": ">=0.13"
     },
     "suggest": {
         "telegram-bot-essentials/user-management": "Adds a campaign section and a campaign filter to the admin user list.",
