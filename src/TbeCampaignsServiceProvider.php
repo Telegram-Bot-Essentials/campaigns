@@ -18,7 +18,7 @@ use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Admin\CampaignsQuer
 use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQuery;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin\CampaignsAnswer;
-use TelegramBotEssentials\Campaigns\Telegram\TextMatchers\DiceThrowMatcher;
+use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Member\DiceAnswer;
 use TelegramBotEssentials\Essence\Events\BotDeepLinkReceived;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\UserManagement\DTOs\BotUserFilter;
@@ -49,9 +49,8 @@ class TbeCampaignsServiceProvider extends ServiceProvider
 
         stateAnswerBus()->addStateAnswers([
             CampaignsAnswer::class,
+            DiceAnswer::class,
         ]);
-
-        textMatcherBus()->addTextMatcher(DiceThrowMatcher::class);
 
         formRegistry()->addForms([
             CreateCampaignForm::class,
