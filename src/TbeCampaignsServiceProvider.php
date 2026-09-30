@@ -5,16 +5,20 @@ namespace TelegramBotEssentials\Campaigns;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use TelegramBotEssentials\Campaigns\Claims\ClickClaim;
+use TelegramBotEssentials\Campaigns\Claims\DiceClaim;
 use TelegramBotEssentials\Campaigns\Events\CampaignUserAttributed;
 use TelegramBotEssentials\Campaigns\Listeners\HandleCampaignDeepLink;
 use TelegramBotEssentials\Campaigns\Listeners\HandleCampaignPrizes;
 use TelegramBotEssentials\Campaigns\Models\CampaignAttribution;
 use TelegramBotEssentials\Campaigns\Prizes\WalletCreditPrize;
+use TelegramBotEssentials\Campaigns\Services\ClaimMethods;
 use TelegramBotEssentials\Campaigns\Services\PrizeTypes;
 use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Admin\CampaignsQuery;
 use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQuery;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin\CampaignsAnswer;
+use TelegramBotEssentials\Campaigns\Telegram\TextMatchers\DiceThrowMatcher;
 use TelegramBotEssentials\Essence\Events\BotDeepLinkReceived;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\UserManagement\DTOs\BotUserFilter;
@@ -27,6 +31,7 @@ class TbeCampaignsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PrizeTypes::class);
+        $this->app->singleton(ClaimMethods::class);
     }
 
     public function boot(): void
@@ -46,6 +51,8 @@ class TbeCampaignsServiceProvider extends ServiceProvider
             CampaignsAnswer::class,
         ]);
 
+        textMatcherBus()->addTextMatcher(DiceThrowMatcher::class);
+
         formRegistry()->addForms([
             CreateCampaignForm::class,
         ]);
@@ -57,6 +64,10 @@ class TbeCampaignsServiceProvider extends ServiceProvider
 
         Event::listen(BotDeepLinkReceived::class, HandleCampaignDeepLink::class);
         Event::listen(CampaignUserAttributed::class, HandleCampaignPrizes::class);
+
+        // How a prize is received: campaigns ships a tap and a dice game.
+        claimMethods()->register(new ClickClaim);
+        claimMethods()->register(new DiceClaim);
 
         // Wallet credit is the one prize campaigns ships; every other type is
         // registered by the package or app that knows how to hand it over.
