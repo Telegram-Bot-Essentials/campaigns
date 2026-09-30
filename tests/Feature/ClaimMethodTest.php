@@ -17,6 +17,7 @@ use TelegramBotEssentials\Campaigns\Telegram\Forms\Claims\DiceClaimForm;
 use TelegramBotEssentials\Campaigns\Tests\Support\RecordingPrize;
 use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Models\BotUser;
+use TelegramBotEssentials\Essence\Models\MessageMeta;
 use TelegramBotEssentials\Essence\Support\WebhookContext;
 
 beforeEach(function () {
@@ -65,27 +66,32 @@ function playerWith(int $peerId): BotUser
     return $user;
 }
 
+/** The user taps the button of the prize message. The tapped message carries its text and button, as Telegram sends them. */
 function tapPlay(CampaignPrizeGrant $grant, int $peerId): void
 {
-    test()->postWebhookUpdate(test()->bot, test()->makeCallbackQueryUpdate(encodeCallback('CAMPAIGN_PRIZE', 'claim', [$grant->id]), peerId: $peerId))->assertOk();
+    $update = test()->makeCallbackQueryUpdate(encodeCallback('CAMPAIGN_PRIZE', 'claim', [$grant->id]), peerId: $peerId);
+    $update['callback_query']['message']['message_id'] = $grant->message_id;
+    $update['callback_query']['message']['text'] = 'announcement '.$grant->id;
+    $update['callback_query']['message']['reply_markup'] = ['inline_keyboard' => [[['text' => 'Play', 'callback_data' => 'x']]]];
+
+    test()->postWebhookUpdate(test()->bot, $update)->assertOk();
 }
 
 /** @param  array<string, mixed>  $extra */
-function throwDice(int $peerId, int $messageId, int $value, ?int $replyTo = null, string $emoji = '🎲', array $extra = []): void
+function throwDice(int $peerId, int $messageId, int $value, string $emoji = '🎲', array $extra = []): void
 {
-    $message = [
+    test()->postWebhookUpdate(test()->bot, ['message' => [
         'message_id' => $messageId,
         'date' => time(),
         'chat' => ['id' => $peerId, 'type' => 'private'],
         'from' => ['id' => $peerId, 'is_bot' => false, 'first_name' => 'Test'],
         'dice' => ['emoji' => $emoji, 'value' => $value],
-    ];
+    ] + $extra])->assertOk();
+}
 
-    if ($replyTo !== null) {
-        $message['reply_to_message'] = ['message_id' => $replyTo, 'date' => time(), 'chat' => ['id' => $peerId, 'type' => 'private']];
-    }
-
-    test()->postWebhookUpdate(test()->bot, ['message' => $message + $extra])->assertOk();
+function sendText(int $peerId, string $text): void
+{
+    test()->postWebhookUpdate(test()->bot, test()->makeMessageUpdate($text, peerId: $peerId))->assertOk();
 }
 
 /** A game that has been started: the grant, with the id a throw must exceed. */
@@ -95,6 +101,11 @@ function startedGame(int $peerId, ?CampaignPrizeGrant $grant = null): CampaignPr
     tapPlay($grant, $peerId);
 
     return $grant->refresh();
+}
+
+function userState(int $peerId): ?string
+{
+    return BotUser::query()->where('telegram_user_peer_id', $peerId)->firstOrFail()->state;
 }
 
 it('registers a tap and a dice game', function () {
@@ -182,77 +193,69 @@ describe('admin', function () {
 });
 
 describe('dice game', function () {
-    it('does not hand the prize over on the tap, and asks for a dice as a reply', function () {
+    it('does not hand the prize over on the tap; it locks the message and waits for a dice', function () {
         dicePrize();
         playerWith(4010);
         $grant = startedGame(4010);
 
         expect($grant->status)->toBe(PrizeGrantStatus::Pending)
             ->and(RecordingPrize::$granted)->toBe([])
+            ->and(userState(4010))->toContain('CAMPAIGN_DICE')
             ->and($grant->prompt_message_id)->not->toBeNull()
-            ->and(tgCalls('sendMessage')->last()['reply_parameters']['message_id'])->toBe($grant->message_id)
-            ->and(tgCalls('editMessageText')->last())->not->toHaveKey('reply_markup');
+            ->and(json_encode(tgCalls('editMessageReplyMarkup')->last()['reply_markup']))->toContain('cancel_action');
     });
 
-    it('asks once however often play is tapped', function () {
-        dicePrize();
-        playerWith(4011);
-        $grant = startedGame(4011);
-        $sent = tgCalls('sendMessage')->count();
-
-        tapPlay($grant, 4011);
-
-        expect(tgCalls('sendMessage'))->toHaveCount($sent);
-    });
-
-    it('hands the prize over on a winning throw and settles the message', function () {
+    it('hands the prize over on a winning throw, settles the message and ends the state', function () {
         dicePrize([6]);
         $user = playerWith(4012);
         $grant = startedGame(4012);
 
-        throwDice(4012, $grant->prompt_message_id + 5, 6, $grant->message_id);
+        throwDice(4012, $grant->prompt_message_id + 5, 6);
 
         $edit = tgCalls('editMessageText')->last();
         expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Granted)
             ->and(RecordingPrize::$granted)->toBe([$user->id])
             ->and($edit['text'])->toContain(__('tbe-campaigns::prizes.notify.received', ['prize' => 'a recorded prize']))
-            ->and($edit)->not->toHaveKey('reply_markup');
+            ->and($edit)->not->toHaveKey('reply_markup')
+            ->and(userState(4012))->toBeNull();
     });
 
-    it('lets a user throw again while tries remain', function () {
+    it('lets a user throw again while tries remain, staying in the game', function () {
         $prize = dicePrize([6], tries: 2);
         playerWith(4013);
         $grant = startedGame(4013);
 
-        throwDice(4013, $grant->prompt_message_id + 5, 1, $grant->message_id);
+        throwDice(4013, $grant->prompt_message_id + 5, 1);
 
         expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Pending)
             ->and($grant->plays)->toBe(1)
             ->and(lastBotText())->toContain('1 try(s) left')
+            ->and(userState(4013))->toContain('CAMPAIGN_DICE')
             ->and($prize->refresh()->grants_count)->toBe(1);
     });
 
-    it('loses on the last try, frees the slot and drops the button', function () {
+    it('loses on the last try, frees the slot, drops the button and ends the state', function () {
         $prize = dicePrize([6], tries: 2, cap: 1);
         playerWith(4014);
         $grant = startedGame(4014);
 
-        throwDice(4014, $grant->prompt_message_id + 5, 1, $grant->message_id);
-        throwDice(4014, $grant->prompt_message_id + 6, 2, $grant->message_id);
+        throwDice(4014, $grant->prompt_message_id + 5, 1);
+        throwDice(4014, $grant->prompt_message_id + 6, 2);
 
         $edit = tgCalls('editMessageText')->last();
         expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Lost)
             ->and($prize->refresh()->grants_count)->toBe(0)
             ->and(RecordingPrize::$granted)->toBe([])
             ->and($edit['text'])->toContain(__('tbe-campaigns::prizes.notify.lost', ['prize' => 'a recorded prize']))
-            ->and($edit)->not->toHaveKey('reply_markup');
+            ->and($edit)->not->toHaveKey('reply_markup')
+            ->and(userState(4014))->toBeNull();
     });
 
     it('gives the freed slot to the next user', function () {
         $prize = dicePrize([6], tries: 1, cap: 1);
         playerWith(4015);
         $grant = startedGame(4015);
-        throwDice(4015, $grant->prompt_message_id + 5, 1, $grant->message_id);
+        throwDice(4015, $grant->prompt_message_id + 5, 1);
 
         playerWith(4016);
 
@@ -260,15 +263,16 @@ describe('dice game', function () {
             ->and($prize->refresh()->grants_count)->toBe(1);
     });
 
-    it('does not count a forwarded dice', function () {
+    it('does not count a forwarded dice, and keeps the game open', function () {
         dicePrize([6]);
         playerWith(4020);
         $grant = startedGame(4020);
 
-        throwDice(4020, $grant->prompt_message_id + 5, 6, $grant->message_id, extra: ['forward_origin' => ['type' => 'user', 'date' => time()]]);
+        throwDice(4020, $grant->prompt_message_id + 5, 6, extra: ['forward_origin' => ['type' => 'user', 'date' => time()]]);
 
         expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Pending)
             ->and($grant->plays)->toBe(0)
+            ->and(userState(4020))->toContain('CAMPAIGN_DICE')
             ->and(lastBotText())->toContain(__('tbe-campaigns::claims.dice.rejected.forwarded'));
     });
 
@@ -277,7 +281,7 @@ describe('dice game', function () {
         playerWith(4021);
         $grant = startedGame(4021);
 
-        throwDice(4021, $grant->prompt_message_id + 5, 6, $grant->message_id, extra: ['via_bot' => ['id' => 5, 'is_bot' => true, 'first_name' => 'x']]);
+        throwDice(4021, $grant->prompt_message_id + 5, 6, extra: ['via_bot' => ['id' => 5, 'is_bot' => true, 'first_name' => 'x']]);
 
         expect($grant->refresh()->plays)->toBe(0);
     });
@@ -287,7 +291,7 @@ describe('dice game', function () {
         playerWith(4022);
         $grant = startedGame(4022);
 
-        throwDice(4022, $grant->prompt_message_id + 5, 1, $grant->message_id, emoji: '🎯');
+        throwDice(4022, $grant->prompt_message_id + 5, 1, emoji: '🎯');
 
         expect($grant->refresh()->plays)->toBe(0)
             ->and(lastBotText())->toContain(__('tbe-campaigns::claims.dice.rejected.wrongEmoji'));
@@ -298,7 +302,7 @@ describe('dice game', function () {
         playerWith(4023);
         $grant = startedGame(4023);
 
-        throwDice(4023, $grant->prompt_message_id - 1, 6, $grant->message_id);
+        throwDice(4023, $grant->prompt_message_id - 1, 6);
 
         expect($grant->refresh()->plays)->toBe(0)
             ->and(lastBotText())->toContain(__('tbe-campaigns::claims.dice.rejected.stale'));
@@ -309,54 +313,25 @@ describe('dice game', function () {
         playerWith(4024);
         $grant = startedGame(4024);
 
-        throwDice(4024, $grant->prompt_message_id + 5, 1, $grant->message_id);
-        throwDice(4024, $grant->prompt_message_id + 5, 1, $grant->message_id);
+        throwDice(4024, $grant->prompt_message_id + 5, 1);
+        throwDice(4024, $grant->prompt_message_id + 5, 1);
 
         expect($grant->refresh()->plays)->toBe(1);
     });
 
-    it('accepts a throw that is not a reply when only one game is open', function () {
+    it('tells the user what to send when they type instead of throwing', function () {
         dicePrize([6]);
         playerWith(4025);
         $grant = startedGame(4025);
 
-        throwDice(4025, $grant->prompt_message_id + 5, 6);
+        sendText(4025, 'hello');
 
-        expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Granted);
+        expect(lastBotText())->toContain(__('tbe-campaigns::claims.dice.hint'))
+            ->and($grant->refresh()->plays)->toBe(0)
+            ->and(userState(4025))->toContain('CAMPAIGN_DICE');
     });
 
-    it('plays two prizes independently, each by its own reply', function () {
-        dicePrize([6]);
-        dicePrize([1]);
-        playerWith(4026);
-        [$first, $second] = CampaignPrizeGrant::query()->orderBy('id')->get()->all();
-        startedGame(4026, $first);
-        startedGame(4026, $second);
-        $first->refresh();
-        $second->refresh();
-
-        throwDice(4026, max($first->prompt_message_id, $second->prompt_message_id) + 5, 1, $second->message_id);
-
-        expect($second->refresh()->status)->toBe(PrizeGrantStatus::Granted)
-            ->and($first->refresh()->status)->toBe(PrizeGrantStatus::Pending)
-            ->and($first->plays)->toBe(0);
-    });
-
-    it('asks which prize a throw is for when several are open and it replies to none', function () {
-        dicePrize([6]);
-        dicePrize([1]);
-        playerWith(4027);
-        [$first, $second] = CampaignPrizeGrant::query()->orderBy('id')->get()->all();
-        startedGame(4027, $first);
-        startedGame(4027, $second);
-
-        throwDice(4027, max($first->refresh()->prompt_message_id, $second->refresh()->prompt_message_id) + 5, 6);
-
-        expect($first->refresh()->plays + $second->refresh()->plays)->toBe(0)
-            ->and(lastBotText())->toContain(__('tbe-campaigns::claims.dice.ambiguous'));
-    });
-
-    it('ignores a dice from a user with no game open', function () {
+    it('ignores a dice from a user who is not playing', function () {
         dicePrize([6]);
         playerWith(4028);
         $grant = CampaignPrizeGrant::sole();
@@ -367,14 +342,87 @@ describe('dice game', function () {
             ->and($grant->plays)->toBe(0);
     });
 
-    it('does not let another user play or win someone else\'s game', function () {
-        dicePrize([6]);
-        playerWith(4029);
-        $grant = startedGame(4029);
-        $this->makeBotUser($this->bot, 4030);
+    describe('cancelling', function () {
+        it('cancels with the cancel key, puts the message back and keeps the throws used', function () {
+            dicePrize([6], tries: 2);
+            playerWith(4040);
+            $grant = startedGame(4040);
+            throwDice(4040, $grant->prompt_message_id + 5, 1);
 
-        throwDice(4030, $grant->prompt_message_id + 5, 6, $grant->message_id);
+            sendText(4040, __('tbe::cancel_process.reply_key'));
 
-        expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Pending);
+            $revert = tgCalls('editMessageText')->last();
+            expect(userState(4040))->toBeNull()
+                ->and($revert['message_id'])->toBe($grant->message_id)
+                ->and($revert['text'])->toBe('announcement '.$grant->id)
+                ->and($grant->refresh()->status)->toBe(PrizeGrantStatus::Pending)
+                ->and($grant->plays)->toBe(1);
+        });
+
+        it('cancels with the button on the locked message', function () {
+            dicePrize([6]);
+            playerWith(4041);
+            $grant = startedGame(4041);
+            $meta = MessageMeta::query()->latest('id')->firstOrFail();
+
+            pressAs(4041, 'MESSAGE_META', 'cancel_action', [$meta->id]);
+
+            expect(userState(4041))->toBeNull()
+                ->and(tgCalls('editMessageText')->last()['text'])->toBe('announcement '.$grant->id);
+        });
+
+        it('lets the user resume after cancelling, with the tries they have left', function () {
+            dicePrize([6], tries: 2);
+            playerWith(4042);
+            $grant = startedGame(4042);
+            throwDice(4042, $grant->prompt_message_id + 5, 1);
+            sendText(4042, __('tbe::cancel_process.reply_key'));
+
+            $grant = startedGame(4042, $grant);
+
+            expect(lastBotText())->toContain('1 try(s) left')
+                ->and(userState(4042))->toContain('CAMPAIGN_DICE');
+        });
+
+        it('cancels the open game when another action arrives', function () {
+            dicePrize([6]);
+            playerWith(4043);
+            $grant = startedGame(4043);
+
+            sendText(4043, '/start');
+
+            expect(userState(4043))->toBeNull()
+                ->and(tgCalls('editMessageText')->last()['text'])->toBe('announcement '.$grant->id);
+        });
+
+        it('reverts the first game when the user starts another', function () {
+            dicePrize([6]);
+            dicePrize([1]);
+            playerWith(4044);
+            [$first, $second] = CampaignPrizeGrant::query()->orderBy('id')->get()->all();
+
+            startedGame(4044, $first);
+            startedGame(4044, $second);
+
+            $reverted = tgCalls('editMessageText')->last();
+            expect($reverted['message_id'])->toBe($first->message_id)
+                ->and($reverted['text'])->toBe('announcement '.$first->id)
+                ->and(userState(4044))->toContain('"grant":'.$second->id);
+        });
+
+        it('lets only the game in the state be thrown for', function () {
+            dicePrize([6]);
+            dicePrize([6]);
+            playerWith(4045);
+            [$first, $second] = CampaignPrizeGrant::query()->orderBy('id')->get()->all();
+            startedGame(4045, $first);
+            $second = startedGame(4045, $second);
+
+            throwDice(4045, $second->prompt_message_id + 5, 6);
+
+            expect($second->refresh()->status)->toBe(PrizeGrantStatus::Granted)
+                ->and($first->refresh()->status)->toBe(PrizeGrantStatus::Pending)
+                ->and($first->plays)->toBe(0);
+        });
     });
 });
