@@ -4,12 +4,10 @@ namespace TelegramBotEssentials\Campaigns\Services;
 
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Telegram\Bot\Keyboard\Keyboard;
 use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\CampaignAttribution;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
-use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQuery;
 use Throwable;
 
 /**
@@ -41,7 +39,7 @@ class PrizeGranting
             $grant = $this->reserve($prize, $attribution);
 
             if ($grant !== null) {
-                $this->notify($attribution, $grant);
+                app(PrizeMessages::class)->announce($grant);
             }
         }
     }
@@ -74,6 +72,8 @@ class PrizeGranting
                     'campaign_attribution_id' => $attribution->id,
                     'bot_user_id' => $attribution->bot_user_id,
                     'status' => PrizeGrantStatus::Pending,
+                    'method' => $prize->method,
+                    'method_config' => $prize->method_config,
                 ]);
             });
         } catch (UniqueConstraintViolationException) {
@@ -86,6 +86,28 @@ class PrizeGranting
     public function claim(CampaignPrizeGrant $grant): PrizeGrantStatus
     {
         return $this->run($grant, PrizeGrantStatus::Pending);
+    }
+
+    /**
+     * The user played for the prize and lost for good. Only a pending grant
+     * can be forfeited, and the slot it held goes back to the prize, so a
+     * lost game does not use up a limited prize. False when it was not pending.
+     */
+    public function forfeit(CampaignPrizeGrant $grant): bool
+    {
+        return DB::transaction(function () use ($grant) {
+            $locked = CampaignPrizeGrant::query()->whereKey($grant->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status !== PrizeGrantStatus::Pending) {
+                return false;
+            }
+
+            $locked->forceFill(['status' => PrizeGrantStatus::Lost])->save();
+
+            CampaignPrize::query()->whereKey($locked->campaign_prize_id)->where('grants_count', '>', 0)->decrement('grants_count');
+
+            return true;
+        });
     }
 
     /** An admin retries a failed grant. A no-op unless the grant is failed. */
@@ -158,30 +180,5 @@ class PrizeGranting
         }
 
         return $locked->status;
-    }
-
-    private function notify(CampaignAttribution $attribution, CampaignPrizeGrant $grant): void
-    {
-        $prize = $grant->prize->describe();
-
-        try {
-            wHook()->api()->sendMessage([
-                'chat_id' => wHook()->user()->telegramUser->peer_id,
-                'text' => __('tbe-campaigns::prizes.notify.title')."\r\n\r\n".__('tbe-campaigns::prizes.notify.claimable', ['prize' => $prize]),
-                'reply_markup' => Keyboard::make()->inline()->row([
-                    Keyboard::inlineButton([
-                        'text' => __('tbe-campaigns::prizes.keys.claim', ['prize' => $prize]),
-                        'callback_data' => encodeCallback(PrizeClaimQuery::TYPE, 'claim', [$grant->id]),
-                    ]),
-                ]),
-            ]);
-        } catch (Throwable $e) {
-            // The grant is recorded; a failed notification must not undo the join.
-            tbeLog('campaigns')->error('Could not tell attribution #{attribution_id} about prize grant #{grant_id}: '.$e->getMessage(), [
-                'attribution_id' => $attribution->id,
-                'grant_id' => $grant->id,
-                'exception' => $e,
-            ]);
-        }
     }
 }
