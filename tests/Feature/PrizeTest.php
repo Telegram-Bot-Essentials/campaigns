@@ -98,15 +98,14 @@ it('listens for the attributed event', function () {
     expect(CampaignPrizeGrant::count())->toBe(1);
 });
 
-it('hands a prize that needs no claim over at once', function () {
-    RecordingPrize::$requiresClaim = false;
+it('holds every prize pending until the user claims it', function () {
     attachRecording();
     $attribution = newcomer(3003);
 
     app(PrizeGranting::class)->issue($attribution);
 
-    expect(CampaignPrizeGrant::sole()->status)->toBe(PrizeGrantStatus::Granted)
-        ->and(RecordingPrize::$granted)->toBe([$attribution->bot_user_id]);
+    expect(CampaignPrizeGrant::sole()->status)->toBe(PrizeGrantStatus::Pending)
+        ->and(RecordingPrize::$granted)->toBe([]);
 });
 
 it('credits the wallet for the wallet prize', function () {
@@ -117,7 +116,8 @@ it('credits the wallet for the wallet prize', function () {
     app(PrizeGranting::class)->issue($attribution);
 
     prizeContext($attribution->botUser);
-    expect(CampaignPrizeGrant::sole()->status)->toBe(PrizeGrantStatus::Granted)
+    expect(CampaignPrizeGrant::sole()->status)->toBe(PrizeGrantStatus::Pending)
+        ->and(app(PrizeGranting::class)->claim(CampaignPrizeGrant::sole()))->toBe(PrizeGrantStatus::Granted)
         ->and((string) wallet()->currentUserWalletBalance())->toBe('25000');
 });
 
@@ -293,4 +293,42 @@ describe('settlement', function () {
         expect($stats['paidUsers'])->toBe(0)
             ->and($stats['revenue'])->toBe('0');
     });
+});
+
+it('sends one message per prize, each with its own claim button', function () {
+    attachRecording();
+    attachRecording();
+
+    app(PrizeGranting::class)->issue(newcomer(3010));
+
+    $sent = tgCalls('sendMessage');
+    expect($sent)->toHaveCount(2)
+        ->and(json_encode($sent[0]['reply_markup']))->not->toBe(json_encode($sent[1]['reply_markup']));
+});
+
+it('settles the claim message on the outcome and removes its button', function () {
+    attachRecording();
+    $attribution = newcomer(3011);
+    app(PrizeGranting::class)->issue($attribution);
+    $grant = CampaignPrizeGrant::sole();
+
+    test()->postWebhookUpdate($this->bot, test()->makeCallbackQueryUpdate(encodeCallback('CAMPAIGN_PRIZE', 'claim', [$grant->id]), peerId: 3011))->assertOk();
+
+    $edit = tgCalls('editMessageText')->last();
+    expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Granted)
+        ->and($edit['text'])->toContain(__('tbe-campaigns::prizes.notify.received', ['prize' => 'a recorded prize']))
+        ->and($edit)->not->toHaveKey('reply_markup');
+});
+
+it('settles the claim message as failed when the hand-over fails', function () {
+    RecordingPrize::$fail = true;
+    attachRecording();
+    $attribution = newcomer(3012);
+    app(PrizeGranting::class)->issue($attribution);
+    $grant = CampaignPrizeGrant::sole();
+
+    test()->postWebhookUpdate($this->bot, test()->makeCallbackQueryUpdate(encodeCallback('CAMPAIGN_PRIZE', 'claim', [$grant->id]), peerId: 3012))->assertOk();
+
+    expect($grant->refresh()->status)->toBe(PrizeGrantStatus::Failed)
+        ->and(tgCalls('editMessageText')->last()['text'])->toContain(__('tbe-campaigns::prizes.notify.failed', ['prize' => 'a recorded prize']));
 });

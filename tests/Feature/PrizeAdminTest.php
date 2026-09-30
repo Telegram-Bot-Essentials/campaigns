@@ -53,6 +53,15 @@ it('starts the prize type config form from the type picker', function () {
     expect(lastBotText())->toContain(__('tbe-campaigns::prizes.wallet.wizard.fields.amount.prompt'));
 });
 
+it('accepts a wallet prize amount above 1000', function () {
+    prizeTypes()->register(new WalletCreditPrize);
+
+    pressAs(800, 'CAMPAIGNS', 'pickPrizeType', [$this->campaign->id, 'wallet', 1]);
+    test()->postWebhookUpdate($this->bot, test()->makeMessageUpdate('50000', peerId: 800))->assertOk();
+
+    expect(lastBotText())->toContain('50000');
+});
+
 it('refuses a prize type that is not registered', function () {
     pressAs(800, 'CAMPAIGNS', 'pickPrizeType', [$this->campaign->id, 'nope', 1]);
 

@@ -18,13 +18,10 @@ class RecordingPrize implements PrizeType
 
     public static bool $fail = false;
 
-    public static bool $requiresClaim = true;
-
     public static function reset(): void
     {
         self::$granted = [];
         self::$fail = false;
-        self::$requiresClaim = true;
     }
 
     public function key(): string
@@ -45,11 +42,6 @@ class RecordingPrize implements PrizeType
     public function configForm(): string
     {
         return WalletPrizeForm::class;
-    }
-
-    public function requiresClaim(): bool
-    {
-        return self::$requiresClaim;
     }
 
     public function grant(BotUser $user, array $config, CampaignPrizeGrant $grant): void
