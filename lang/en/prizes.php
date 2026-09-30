@@ -3,9 +3,9 @@
 return [
     'notify' => [
         'title' => '🎁 A welcome gift for you!',
-        'granted' => '✅ :prize — it is yours.',
-        'instantFailed' => '⚠️ :prize — something went wrong, support has been notified.',
         'claimable' => '🎁 :prize — tap below to claim it.',
+        'received' => '✅ :prize — it is yours.',
+        'failed' => '⚠️ :prize — we could not give it to you right now. Support has been notified.',
     ],
     'keys' => [
         'claim' => '🎁 Claim: :prize',
