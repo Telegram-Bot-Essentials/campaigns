@@ -142,6 +142,39 @@ class CampaignsQuery extends CallbackQuery
         CampaignsFeature::prize($prize, $lastPage)->update();
     }
 
+    /** Lists the registered claim methods for the admin to choose from. */
+    public function pickMethod(CampaignPrize $prize, int $lastPage = 1): void
+    {
+        CampaignsFeature::pickMethod($prize, $lastPage)->update();
+    }
+
+    /** Sets the prize's claim method, through its own config form when it has one. */
+    public function chooseMethod(CampaignPrize $prize, string $methodKey, int $lastPage = 1): void
+    {
+        $method = claimMethods()->get($methodKey);
+
+        if ($method === null) {
+            $this->answer(__('tbe-campaigns::claims.admin.unknown'));
+
+            return;
+        }
+
+        $form = $method->configForm();
+
+        if ($form === null) {
+            $prize->update(['method' => $method->key(), 'method_config' => $method->defaultConfig()]);
+
+            CampaignsFeature::prize($prize, $lastPage)->answer(__('tbe-campaigns::claims.admin.updated'))->update();
+
+            return;
+        }
+
+        /** @var class-string<Form> $form */
+        $form::start(['prize' => $prize->id, 'lastPage' => $lastPage]);
+
+        $this->answer();
+    }
+
     public function togglePrize(CampaignPrize $prize, int $lastPage = 1): void
     {
         $prize->update(['active' => ! $prize->active]);
