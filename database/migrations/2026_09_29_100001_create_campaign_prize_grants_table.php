@@ -31,7 +31,7 @@ return new class extends Migration
             $table->timestamps();
 
             // A user is owed each prize once, however often the listener runs.
-            $table->unique(['campaign_prize_id', 'campaign_attribution_id']);
+            $table->unique(['campaign_prize_id', 'campaign_attribution_id'], 'prize_grants_prize_attribution_unique');
         });
     }
 
