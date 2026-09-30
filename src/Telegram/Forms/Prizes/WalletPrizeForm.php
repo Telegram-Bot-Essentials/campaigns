@@ -20,7 +20,7 @@ class WalletPrizeForm extends PrizeConfigForm
     public function steps(): array
     {
         return [
-            Text::make('amount')->rules(['numeric', 'gt:0']),
+            Text::make('amount')->rules(['numeric', 'gt:0', 'max:100000000']),
         ];
     }
 
