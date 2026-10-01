@@ -6,6 +6,10 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- Reworded the user-facing English and Persian strings to read more naturally; no keys or placeholders changed.
+
 ### Added
 
 - `campaigns`, `campaign_attributions` and `campaign_misses` tables and models.
