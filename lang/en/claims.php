@@ -8,7 +8,7 @@ return [
     'admin' => [
         'pick' => '🎯 How should users receive this prize? Only users who join from now on get the new way.',
         'updated' => '✅ Claim method updated.',
-        'unknown' => 'This claim method is not available any more.',
+        'unknown' => 'This claim method isn\'t available any more.',
     ],
     'click' => [
         'label' => '👆 One tap',
@@ -21,14 +21,14 @@ return [
         'lockLabel' => 'Playing for this prize…',
         'hint' => 'Send a 🎲 to play, or tap Cancel.',
         'prompt' => "🎲 Throw the dice for <b>:prize</b>!\r\n\r\nSend a 🎲 now. You win on: :numbers.\r\nYou have :tries try(s) left. Tap Cancel to stop.",
-        'notStarted' => 'We could not start the game. Try again.',
-        'won' => '🎉 :value — that is a winner!',
+        'notStarted' => 'We couldn\'t start the game. Try again.',
+        'won' => '🎉 :value — you win!',
         'miss' => '🎲 :value — not a winning number. :left try(s) left, throw again!',
         'lastMiss' => '🎲 :value — not a winning number, and that was your last try.',
         'rejected' => [
-            'forwarded' => '🚫 Forwarded dice do not count. Throw your own 🎲.',
+            'forwarded' => '🚫 Forwarded dice don\'t count. Throw your own 🎲.',
             'wrongEmoji' => '🚫 Only the 🎲 dice counts.',
-            'stale' => '🚫 That dice was thrown before the game started. Throw a new 🎲.',
+            'stale' => '🚫 That dice was thrown before the game started. Throw a new one.',
         ],
         'wizard' => [
             'lockLabel' => 'Setting up the dice game…',

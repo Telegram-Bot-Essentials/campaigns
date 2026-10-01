@@ -63,8 +63,8 @@ return [
 
     'wizard' => [
         'lockLabel' => 'Creating campaign…',
-        'waitingPage' => '⌛ Waiting for page number.',
-        'enterPage' => '🔢 Enter page number:',
+        'waitingPage' => '⌛ Waiting for the page number.',
+        'enterPage' => '🔢 Enter the page number:',
         'pageLoaded' => '📄 Page :page loaded.',
         'finished' => '🎉 Campaign created!',
         'summary' => '📣 Review the new campaign',
@@ -76,11 +76,11 @@ return [
             ],
             'days' => [
                 'label' => 'Expiry',
-                'prompt' => '📅 Enter how many days from now the link should stop working, or tap Skip for never:',
+                'prompt' => '📅 In how many days should the link stop working? Send a number, or tap Skip for never:',
             ],
             'expiry' => [
                 'label' => 'Expiry',
-                'editPrompt' => '📅 Enter how many days from now the link should stop working:',
+                'editPrompt' => '📅 In how many days should the link stop working? Send a number:',
             ],
         ],
     ],
@@ -89,7 +89,7 @@ return [
         'keys' => [
             'campaigns' => [
                 'text' => '📣 Campaigns',
-                'response' => '📋 Campaign manager opened successfully.',
+                'response' => '📋 Campaign manager opened.',
             ],
         ],
     ],

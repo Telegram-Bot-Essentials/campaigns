@@ -4,9 +4,9 @@ return [
     'notify' => [
         'title' => '🎁 A welcome gift for you!',
         'claimable' => '🎁 :prize — tap below to claim it.',
-        'received' => '✅ :prize — it is yours.',
-        'lost' => '😕 :prize — you did not win it this time.',
-        'failed' => '⚠️ :prize — we could not give it to you right now. Support has been notified.',
+        'received' => '✅ :prize is yours!',
+        'lost' => '😕 You didn\'t win :prize this time.',
+        'failed' => '⚠️ We couldn\'t give you :prize right now. Support has been notified.',
     ],
     'keys' => [
         'claim' => '🎁 Claim: :prize',
@@ -22,27 +22,27 @@ return [
         'granted' => '🎉 Done! :prize',
         'failed' => '⚠️ We could not give you the gift right now. Support has been notified.',
         'already' => 'This gift was already claimed.',
-        'unavailable' => 'This way of receiving the gift is not available any more.',
+        'unavailable' => 'This way of getting the gift isn\'t available any more.',
     ],
     'admin' => [
         'empty' => '🎁 <b>:name</b> has no prizes yet. New users who join through it get nothing but the welcome.',
-        'list' => '🎁 Prizes of <b>:name</b> — pick one to manage.',
+        'list' => '🎁 <b>:name</b> prizes — pick one to manage.',
         'label' => ':badge :prize · :used/:cap',
         'noTypes' => '😕 No prize types are installed.',
         'pickType' => '🎁 What kind of prize?',
-        'unknownType' => 'This prize type is not available any more.',
+        'unknownType' => 'This prize type isn\'t available any more.',
         'updated' => '✅ Prize updated.',
-        'retried' => '🔁 Retried the failed grants.',
+        'retried' => '🔁 Retried the failed prizes.',
         'show' => '🎁 <b>:prize</b>'
             ."\r\n"
             ."\r\n📌 Status: :status"
             ."\r\n🎯 Received by: :method"
-            ."\r\n🔢 Limit: :cap (reserved: :used)"
+            ."\r\n🔢 Limit: :cap (taken: :used)"
             ."\r\n"
-            ."\r\n✅ Granted: :granted"
+            ."\r\n✅ Given: :granted"
             ."\r\n⏳ Waiting to be claimed: :pending"
             ."\r\n⚠️ Failed: :failed"
-            ."\r\n😕 Lost in the game: :lost",
+            ."\r\n😕 Didn't win: :lost",
         'cap' => [
             'label' => 'Prize limit',
             'prompt' => '🔢 How many users can get this prize in total? Send 0 for no limit:',
