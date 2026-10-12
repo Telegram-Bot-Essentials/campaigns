@@ -104,7 +104,7 @@ function startedGame(int $peerId, ?CampaignPrizeGrant $grant = null): CampaignPr
 
 function userState(int $peerId): ?string
 {
-    return BotUser::query()->where('telegram_user_peer_id', $peerId)->firstOrFail()->state;
+    return BotUser::query()->where('telegram_user_peer_id', $peerId)->firstOrFail()->privateConversation()->state;
 }
 
 it('registers a tap and a dice game', function () {
