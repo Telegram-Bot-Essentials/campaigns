@@ -91,7 +91,7 @@ class DiceClaim implements ClaimMethod
                     'tries' => self::tries($config) - $grant->plays,
                 ]),
                 'parse_mode' => 'HTML',
-                'reply_markup' => wHook()->user()->getKeyboard(),
+                'reply_markup' => replyKeyboard(),
             ]);
         } catch (TelegramSDKException) {
             // Nothing was asked, so leave the user where they were.
