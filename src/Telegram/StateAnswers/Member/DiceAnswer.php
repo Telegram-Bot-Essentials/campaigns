@@ -36,7 +36,7 @@ class DiceAnswer extends StateAnswer
         }
 
         if ($grant->bot_user_id !== wHook()->user()->id || $grant->status !== PrizeGrantStatus::Pending) {
-            wHook()->user()->changeState();
+            wHook()->conversation()->changeState();
             $this->say($message, __('tbe-campaigns::prizes.claim.already'));
 
             return;
@@ -70,7 +70,7 @@ class DiceAnswer extends StateAnswer
 
     private function won(CampaignPrizeGrant $grant, Message $message, int $value): void
     {
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
 
         $status = app(PrizeGranting::class)->claim($grant);
 
@@ -87,7 +87,7 @@ class DiceAnswer extends StateAnswer
             return;
         }
 
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
 
         $this->say($message, __('tbe-campaigns::claims.dice.lastMiss', ['value' => $value]));
         app(PrizeMessages::class)->settle($grant, PrizeGrantStatus::Lost);
