@@ -35,7 +35,7 @@ class CampaignsAnswer extends StateAnswer
 
         $data = CampaignsFeature::menu(intval($page));
 
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
         wHook()->api()->sendMessage([
             'chat_id' => wHook()->peerId(),
             'text' => __('tbe-campaigns::campaigns.wizard.pageLoaded', ['page' => $page]),
@@ -55,7 +55,7 @@ class CampaignsAnswer extends StateAnswer
         Validator::validate(['name' => $name], ['name' => 'required|string|min:2|max:60']);
 
         $campaign->update(['name' => $name]);
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::show($campaign, $lastPage));
     }
@@ -70,7 +70,7 @@ class CampaignsAnswer extends StateAnswer
         Validator::validate(['days' => $days], ['days' => 'required|integer|min:1|max:3650']);
 
         $campaign->update(['expires_at' => now()->addDays((int) $days)]);
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::show($campaign, $lastPage));
     }
@@ -88,7 +88,7 @@ class CampaignsAnswer extends StateAnswer
         Validator::validate(['cap' => $cap], ['cap' => 'required|integer|min:0|max:10000000']);
 
         $prize->update(['max_grants' => (int) $cap === 0 ? null : (int) $cap]);
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::prize($prize, $lastPage));
     }
