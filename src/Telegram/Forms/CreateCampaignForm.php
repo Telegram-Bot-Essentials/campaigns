@@ -4,7 +4,6 @@ namespace TelegramBotEssentials\Campaigns\Telegram\Forms;
 
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Forms\Steps\Text;
 use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
@@ -18,7 +17,7 @@ class CreateCampaignForm extends Form
 {
     protected string $type = 'CAMPAIGN_CREATE';
 
-    protected int $perm = Roles::ADMIN->value;
+    protected ?string $permission = 'campaigns.manage';
 
     protected string $lang = 'tbe-campaigns::campaigns.wizard';
 

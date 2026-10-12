@@ -4,7 +4,6 @@ namespace TelegramBotEssentials\Campaigns\Telegram\Forms;
 
 use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
 
@@ -17,7 +16,7 @@ use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
  */
 abstract class ClaimMethodConfigForm extends Form
 {
-    protected int $perm = Roles::ADMIN->value;
+    protected ?string $permission = 'campaigns.manage';
 
     /** The key of the `ClaimMethod` this form configures. */
     abstract protected function claimMethodKey(): string;

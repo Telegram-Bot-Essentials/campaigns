@@ -5,7 +5,6 @@ namespace TelegramBotEssentials\Campaigns\Telegram\Forms;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Services\CampaignPrizes;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
 
@@ -17,7 +16,7 @@ use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
  */
 abstract class PrizeConfigForm extends Form
 {
-    protected int $perm = Roles::ADMIN->value;
+    protected ?string $permission = 'campaigns.manage';
 
     /** The key of the `PrizeType` this form configures. */
     abstract protected function prizeTypeKey(): string;
