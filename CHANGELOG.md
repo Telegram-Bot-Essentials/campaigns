@@ -6,6 +6,14 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+Requires essence 0.17, which replaces power levels with named permissions.
+
+### Changed
+
+- The admin screens ask for `campaigns.manage` instead of the admin power level.
+  The names are registered with essence's permission registry, so a role
+  package can grant them separately.
+
 ## [0.0.1] - 2026-10-01
 
 ### Changed
