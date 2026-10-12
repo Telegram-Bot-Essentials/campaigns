@@ -8,7 +8,6 @@ use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Services\PrizeGranting;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
 use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Models\MessageMeta;
@@ -18,7 +17,7 @@ class CampaignsQuery extends CallbackQuery
 {
     protected string $type = 'CAMPAIGNS';
 
-    protected int $perm = Roles::ADMIN->value;
+    protected ?string $permission = 'campaigns.manage';
 
     /**
      * @throws InvalidPageNumber
@@ -40,7 +39,7 @@ class CampaignsQuery extends CallbackQuery
         wHook()->api()->sendMessage([
             'chat_id' => wHook()->peerId(),
             'text' => __('tbe-campaigns::campaigns.wizard.enterPage'),
-            'reply_markup' => wHook()->user()->getKeyboard(),
+            'reply_markup' => replyKeyboard(),
         ]);
 
         $this->answer();
@@ -196,7 +195,7 @@ class CampaignsQuery extends CallbackQuery
         wHook()->api()->sendMessage([
             'chat_id' => wHook()->peerId(),
             'text' => __('tbe-campaigns::prizes.admin.cap.prompt'),
-            'reply_markup' => wHook()->user()->getKeyboard(),
+            'reply_markup' => replyKeyboard(),
             'parse_mode' => 'HTML',
         ]);
 
@@ -230,7 +229,7 @@ class CampaignsQuery extends CallbackQuery
         wHook()->api()->sendMessage([
             'chat_id' => wHook()->peerId(),
             'text' => __('tbe-campaigns::campaigns.wizard.fields.'.$field.'.editPrompt'),
-            'reply_markup' => wHook()->user()->getKeyboard(),
+            'reply_markup' => replyKeyboard(),
             'parse_mode' => 'HTML',
         ]);
 
