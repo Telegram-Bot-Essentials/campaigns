@@ -6,6 +6,8 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-10-12
+
 ### Changed
 
 - Requires essence 0.18. A flow's state is read and written on the webhook's
