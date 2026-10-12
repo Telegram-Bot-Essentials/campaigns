@@ -8,7 +8,6 @@ use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
 use TelegramBotEssentials\Campaigns\Services\PrizeGranting;
 use TelegramBotEssentials\Campaigns\Services\PrizeMessages;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Telegram\StateAnswers\StateAnswer;
 
 /**
@@ -23,8 +22,6 @@ class DiceAnswer extends StateAnswer
     public const TYPE = 'CAMPAIGN_DICE';
 
     protected string $type = self::TYPE;
-
-    protected int $perm = Roles::MEMBER->value;
 
     /** Text is allowed too, to tell the user what to send instead of "invalid request". */
     /** @var array<int, string> */
@@ -103,7 +100,7 @@ class DiceAnswer extends StateAnswer
             'chat_id' => wHook()->peerId(),
             'text' => $text,
             'reply_parameters' => ['message_id' => $to->get('message_id'), 'allow_sending_without_reply' => true],
-            'reply_markup' => wHook()->user()->getKeyboard(),
+            'reply_markup' => replyKeyboard(),
         ]);
     }
 }
