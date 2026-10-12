@@ -32,7 +32,7 @@ class CampaignsQuery extends CallbackQuery
         $messageMeta = MessageMeta::makeWithCurrentMessage();
         $messageMeta->lockAction(__('tbe-campaigns::campaigns.wizard.waitingPage'));
 
-        wHook()->user()->changeState(encodeAnswerState($this->type, 'setStartPage', [
+        wHook()->conversation()->changeState(encodeAnswerState($this->type, 'setStartPage', [
             'message_meta' => $messageMeta->id,
         ]));
 
@@ -186,7 +186,7 @@ class CampaignsQuery extends CallbackQuery
         $messageMeta = MessageMeta::makeWithCurrentMessage();
         $messageMeta->cancelableLockAction(__('tbe-campaigns::prizes.admin.cap.label'));
 
-        wHook()->user()->changeState(encodeAnswerState($this->type, 'updateCap', [
+        wHook()->conversation()->changeState(encodeAnswerState($this->type, 'updateCap', [
             'prize' => $prize->id,
             'lastPage' => $lastPage,
             'message_meta' => $messageMeta->id,
@@ -220,7 +220,7 @@ class CampaignsQuery extends CallbackQuery
         $messageMeta = MessageMeta::makeWithCurrentMessage();
         $messageMeta->cancelableLockAction(__('tbe-campaigns::campaigns.wizard.fields.'.$field.'.label'));
 
-        wHook()->user()->changeState(encodeAnswerState($this->type, $answerMethod, [
+        wHook()->conversation()->changeState(encodeAnswerState($this->type, $answerMethod, [
             'campaign' => $campaign->id,
             'lastPage' => $lastPage,
             'message_meta' => $messageMeta->id,
