@@ -22,7 +22,6 @@ use TelegramBotEssentials\Campaigns\Services\PrizeSettlement;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\Prizes\WalletPrizeForm;
 use TelegramBotEssentials\Campaigns\Tests\Support\FakeOrder;
 use TelegramBotEssentials\Campaigns\Tests\Support\RecordingPrize;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\Essence\Support\WebhookContext;
 
@@ -223,7 +222,7 @@ it('leaves a prize-marked invoice out of revenue even at a non-zero price', func
 
 it('attaches a wallet prize from its config form', function () {
     prizeTypes()->register(new WalletCreditPrize);
-    prizeContext($this->makeBotUser($this->bot, 3095, ['power' => Roles::ADMIN->value]));
+    prizeContext($this->grant($this->makeBotUser($this->bot, 3095), 'campaigns.manage'));
 
     $screen = (new WalletPrizeForm)->onComplete(['amount' => '25000'], ['campaign' => $this->campaign->id, 'lastPage' => 1]);
 

@@ -15,7 +15,6 @@ use TelegramBotEssentials\Campaigns\Services\CampaignPrizes;
 use TelegramBotEssentials\Campaigns\Services\PrizeGranting;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\Claims\DiceClaimForm;
 use TelegramBotEssentials\Campaigns\Tests\Support\RecordingPrize;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\Essence\Models\MessageMeta;
 use TelegramBotEssentials\Essence\Support\WebhookContext;
@@ -30,7 +29,7 @@ beforeEach(function () {
     prizeTypes()->register(new RecordingPrize);
 
     $this->campaign = Campaign::create(['bot_id' => $this->bot->id, 'name' => 'Summer sale']);
-    $this->admin = $this->makeBotUser($this->bot, 900, ['power' => Roles::ADMIN->value]);
+    $this->admin = $this->grant($this->makeBotUser($this->bot, 900), 'campaigns.manage');
 });
 
 /** A recording prize received by dice. */

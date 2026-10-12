@@ -5,7 +5,6 @@ declare(strict_types=1);
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Models\CampaignAttribution;
 use TelegramBotEssentials\Campaigns\Telegram\ReplyKeys\Admin\CampaignsKey;
-use TelegramBotEssentials\Essence\Enums\Roles;
 
 const ADMIN = 900;
 const MEMBER = 901;
@@ -14,7 +13,7 @@ beforeEach(function () {
     fakeTelegram();
 
     $this->bot = $this->makeBot();
-    $this->admin = $this->makeBotUser($this->bot, ADMIN, ['power' => Roles::ADMIN->value]);
+    $this->admin = $this->grant($this->makeBotUser($this->bot, ADMIN), 'campaigns.manage');
     $this->member = $this->makeBotUser($this->bot, MEMBER);
     wHook()->setBot($this->bot);
 

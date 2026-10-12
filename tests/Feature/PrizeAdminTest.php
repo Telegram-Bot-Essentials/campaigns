@@ -10,14 +10,13 @@ use TelegramBotEssentials\Campaigns\Prizes\WalletCreditPrize;
 use TelegramBotEssentials\Campaigns\Services\CampaignPrizes;
 use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQuery;
 use TelegramBotEssentials\Campaigns\Tests\Support\RecordingPrize;
-use TelegramBotEssentials\Essence\Enums\Roles;
 
 beforeEach(function () {
     fakeTelegram();
     RecordingPrize::reset();
 
     $this->bot = $this->makeBot();
-    $this->admin = $this->makeBotUser($this->bot, 800, ['power' => Roles::ADMIN->value]);
+    $this->admin = $this->grant($this->makeBotUser($this->bot, 800), 'campaigns.manage');
     $this->owner = $this->makeBotUser($this->bot, 801);
     $this->other = $this->makeBotUser($this->bot, 802);
     wHook()->setBot($this->bot);
