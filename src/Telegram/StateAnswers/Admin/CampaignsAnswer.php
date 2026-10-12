@@ -8,7 +8,6 @@ use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Essence\Enums\AllowableFields;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
 use TelegramBotEssentials\Essence\Services\TelegramPaginator;
 use TelegramBotEssentials\Essence\Telegram\StateAnswers\StateAnswer;
@@ -17,7 +16,7 @@ class CampaignsAnswer extends StateAnswer
 {
     protected string $type = 'CAMPAIGNS';
 
-    protected int $perm = Roles::ADMIN->value;
+    protected ?string $permission = 'campaigns.manage';
 
     /** @var array<int, string> */
     protected array $allowedFields = [
@@ -40,7 +39,7 @@ class CampaignsAnswer extends StateAnswer
         wHook()->api()->sendMessage([
             'chat_id' => wHook()->peerId(),
             'text' => __('tbe-campaigns::campaigns.wizard.pageLoaded', ['page' => $page]),
-            'reply_markup' => wHook()->user()->getKeyboard(),
+            'reply_markup' => replyKeyboard(),
         ]);
 
         $this->requireMessageMeta()->updateAndContinueAction($data);
