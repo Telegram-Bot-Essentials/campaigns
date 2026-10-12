@@ -77,7 +77,7 @@ class DiceClaim implements ClaimMethod
         $messageMeta = MessageMeta::makeWithCurrentMessage();
         $messageMeta->cancelableLockAction(__('tbe-campaigns::claims.dice.lockLabel'));
 
-        wHook()->user()->changeState(encodeAnswerState(DiceAnswer::TYPE, 'throw', [
+        wHook()->conversation()->changeState(encodeAnswerState(DiceAnswer::TYPE, 'throw', [
             'grant' => $grant->id,
             'message_meta' => $messageMeta->id,
         ]));
@@ -95,7 +95,7 @@ class DiceClaim implements ClaimMethod
             ]);
         } catch (TelegramSDKException) {
             // Nothing was asked, so leave the user where they were.
-            wHook()->user()->changeState();
+            wHook()->conversation()->changeState();
             $messageMeta->revertAction();
 
             return __('tbe-campaigns::claims.dice.notStarted');
@@ -132,7 +132,7 @@ class DiceClaim implements ClaimMethod
             $answer->cancel();
         }
 
-        wHook()->user()->changeState();
+        wHook()->conversation()->changeState();
     }
 
     /** Persian and Arabic-Indic digits and the Persian comma as their ASCII forms, as an admin types them. */
