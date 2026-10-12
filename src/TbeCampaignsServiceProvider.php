@@ -41,6 +41,8 @@ class TbeCampaignsServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'tbe-campaigns');
 
+        permissionRegistry()->register('campaigns.manage', fn () => __('tbe-campaigns::permissions.manage'), 'campaigns');
+
         // CallbackQueries, StateAnswers and Forms register themselves here.
         callbackQueryBus()->addCallbackQueries([
             CampaignsQuery::class,
