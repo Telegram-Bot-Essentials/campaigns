@@ -4,7 +4,6 @@ namespace TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member;
 
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
-use TelegramBotEssentials\Essence\Enums\Roles;
 use TelegramBotEssentials\Essence\Telegram\CallbackQueries\CallbackQuery;
 
 class PrizeClaimQuery extends CallbackQuery
@@ -12,8 +11,6 @@ class PrizeClaimQuery extends CallbackQuery
     public const TYPE = 'CAMPAIGN_PRIZE';
 
     protected string $type = self::TYPE;
-
-    protected int $perm = Roles::MEMBER->value;
 
     /** The button under a prize message: hands over to the grant's claim method. */
     public function claim(CampaignPrizeGrant $grant): void
