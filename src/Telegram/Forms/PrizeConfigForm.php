@@ -16,7 +16,7 @@ use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
  */
 abstract class PrizeConfigForm extends Form
 {
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     /** The key of the `PrizeType` this form configures. */
     abstract protected function prizeTypeKey(): string;

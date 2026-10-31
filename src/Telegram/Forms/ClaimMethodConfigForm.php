@@ -16,7 +16,7 @@ use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
  */
 abstract class ClaimMethodConfigForm extends Form
 {
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     /** The key of the `ClaimMethod` this form configures. */
     abstract protected function claimMethodKey(): string;

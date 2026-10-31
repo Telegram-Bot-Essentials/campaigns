@@ -17,7 +17,7 @@ class CreateCampaignForm extends Form
 {
     protected string $type = 'CAMPAIGN_CREATE';
 
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     protected string $lang = 'tbe-campaigns::campaigns.wizard';
 
