@@ -7,7 +7,7 @@ use TelegramBotEssentials\Essence\Telegram\ReplyKeys\ReplyKey;
 
 class CampaignsKey extends ReplyKey
 {
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     protected function text(): string
     {
