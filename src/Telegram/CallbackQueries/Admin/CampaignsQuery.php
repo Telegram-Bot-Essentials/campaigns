@@ -17,7 +17,7 @@ class CampaignsQuery extends CallbackQuery
 {
     protected string $type = 'CAMPAIGNS';
 
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     /**
      * @throws InvalidPageNumber
