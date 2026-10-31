@@ -16,7 +16,7 @@ class CampaignsAnswer extends StateAnswer
 {
     protected string $type = 'CAMPAIGNS';
 
-    protected ?string $permission = 'campaigns.manage';
+    protected ?string $ability = 'campaigns.manage';
 
     /** @var array<int, string> */
     protected array $allowedFields = [
