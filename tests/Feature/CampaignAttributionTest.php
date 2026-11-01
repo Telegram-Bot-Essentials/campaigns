@@ -121,6 +121,22 @@ it('treats a returning user as a miss and does not attribute them', function () 
         ->and(CampaignAttribution::count())->toBe(0);
 });
 
+it('attributes someone first met in a group when they arrive by campaign link', function () {
+    $user = BotUser::findOrFail($this->makeBotUser($this->bot, 2030)->id);
+    $user->forceFill(['has_private_chat' => false])->save();
+
+    $user->markPrivateChatOpened();
+    wHook()->setBot($this->bot);
+    wHook()->setUser($user);
+
+    app(HandleCampaignDeepLink::class)->handle(new BotDeepLinkReceived(
+        new WebhookContext(botId: $this->bot->id, botUserId: $user->id),
+        $this->campaign->payload(),
+    ));
+
+    expect(CampaignAttribution::where('bot_user_id', $user->id)->count())->toBe(1);
+});
+
 it('reports a dead link ahead of the returning-user reason', function () {
     $this->campaign->update(['expires_at' => Carbon::now()->subMinute()]);
 
