@@ -6,6 +6,12 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `lang/<locale>/abilities.php` labels this package's Gate abilities for
+  essence's `abilities()` catalog, so a roles screen (tbe-access) shows
+  them by name.
+
 ## [0.0.5] - 2026-10-31
 
 ### Fixed
