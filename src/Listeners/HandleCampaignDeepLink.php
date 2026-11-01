@@ -60,8 +60,9 @@ class HandleCampaignDeepLink
             $campaign->trashed() => MissReason::Deleted,
             ! $campaign->active => MissReason::Disabled,
             $campaign->isExpired() => MissReason::Expired,
-            // Only a user created by this very /start request is new.
-            ! wHook()->user()->wasRecentlyCreated => MissReason::ExistingUser,
+            // Only a user arriving in their private chat with this very /start
+            // is new, which includes someone met in a group before it.
+            ! wHook()->user()->isNewToPrivateChat() => MissReason::ExistingUser,
             default => null,
         };
     }
