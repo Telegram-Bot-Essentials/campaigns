@@ -6,6 +6,8 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-11-01
+
 ### Added
 
 - `lang/<locale>/abilities.php` labels this package's Gate abilities for
