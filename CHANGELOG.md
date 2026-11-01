@@ -6,6 +6,10 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Someone first met in a group counts as new when they arrive by campaign link.
+
 ## [0.0.6] - 2026-11-01
 
 ### Added
