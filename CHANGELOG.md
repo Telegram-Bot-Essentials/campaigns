@@ -6,6 +6,8 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-11-03
+
 ### Changed
 
 - A prize whose order could not be delivered keeps the real reason on the grant,
