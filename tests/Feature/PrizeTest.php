@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Telegram\Bot\Objects\Update;
 use TelegramBotEssentials\Billing\Models\Invoice;
 use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
@@ -273,7 +272,7 @@ describe('settlement', function () {
         [$grant, $order] = settlementFixture();
 
         FakeOrder::$fail = true;
-        expect(fn () => app(PrizeSettlement::class)->pay($order, $grant))->toThrow(HttpException::class);
+        expect(fn () => app(PrizeSettlement::class)->pay($order, $grant))->toThrow(RuntimeException::class);
 
         FakeOrder::$fail = false;
         app(PrizeSettlement::class)->pay($grant->refresh()->order, $grant);
