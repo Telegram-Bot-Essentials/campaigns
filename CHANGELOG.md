@@ -6,6 +6,12 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- A prize whose order could not be delivered keeps the real reason on the grant,
+  read from the invoice's delivery record, and a retry goes through
+  `Invoice::fulfill()`. Needs billing with delivery tracking.
+
 ## [0.0.7] - 2026-11-01
 
 ### Fixed
