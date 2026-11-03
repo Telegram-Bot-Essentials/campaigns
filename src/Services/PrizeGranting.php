@@ -145,21 +145,7 @@ class PrizeGranting
                 throw new \RuntimeException(sprintf('Prize type "%s" is not registered.', $prize->type));
             }
 
-            // runForUser() hands any exception to essence's handler, which tells
-            // the user "something went wrong" and rethrows a bare HTTP 203, losing
-            // the reason. Catch it inside so the ledger keeps the real message.
-            $failure = null;
-            wHook()->runForUser($user, function () use ($type, $user, $prize, $locked, &$failure) {
-                try {
-                    $type->grant($user, $prize->config, $locked);
-                } catch (Throwable $e) {
-                    $failure = $e;
-                }
-            });
-
-            if ($failure !== null) {
-                throw $failure;
-            }
+            wHook()->runForUser($user, fn () => $type->grant($user, $prize->config, $locked));
 
             $locked->refresh();
             $locked->forceFill(['status' => PrizeGrantStatus::Granted, 'error' => null, 'granted_at' => now()])->save();

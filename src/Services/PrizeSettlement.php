@@ -2,6 +2,7 @@
 
 namespace TelegramBotEssentials\Campaigns\Services;
 
+use RuntimeException;
 use TelegramBotEssentials\Billing\Models\Abstract\Order;
 use TelegramBotEssentials\Billing\Models\Invoice;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
@@ -24,7 +25,7 @@ class PrizeSettlement
      * the invoice already paid and runs only the hook again, so the user never
      * gets a second invoice or a second attempt.
      *
-     * Any exception from the order's paid hook is left to the caller, which
+     * An order that could not be delivered is thrown to the caller, which
      * records the grant as failed.
      */
     public function pay(Order $order, CampaignPrizeGrant $grant): Invoice
@@ -47,9 +48,7 @@ class PrizeSettlement
         }
 
         if ($invoice->getAttribute('status') === 'paid') {
-            $order->invoicePaidHook();
-
-            return $invoice;
+            return $this->delivered($invoice, $invoice->fulfill());
         }
 
         // A prize is free. Settling at price 0 keeps `original_price` for the
@@ -65,6 +64,19 @@ class PrizeSettlement
 
         billing()->attemptPayment($invoice, $attempt);
         $attempt->attemptSucceed();
+
+        $invoice->refresh();
+
+        return $this->delivered($invoice, ! $invoice->needsFulfillment());
+    }
+
+    private function delivered(Invoice $invoice, bool $delivered): Invoice
+    {
+        if (! $delivered) {
+            $reason = $invoice->refresh()->getAttribute('fulfillment_error');
+
+            throw new RuntimeException(is_string($reason) ? $reason : 'The order could not be delivered.');
+        }
 
         return $invoice;
     }
