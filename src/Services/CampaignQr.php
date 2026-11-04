@@ -13,6 +13,8 @@ class CampaignQr
     public static function png(string $content, int $scale = 10): string
     {
         $options = new QROptions([
+            // Version 5 of the library goes by outputType, version 6 by outputInterface.
+            'outputType' => 'png',
             'outputInterface' => QRGdImagePNG::class,
             'outputBase64' => false,
             'scale' => $scale,
