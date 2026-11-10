@@ -3,11 +3,13 @@
 namespace TelegramBotEssentials\Campaigns\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
+use TelegramBotEssentials\Essence\Models\Bot;
 
 /**
  * @property int $id
@@ -72,6 +74,16 @@ class Campaign extends Model
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * The bot it belongs to; the web panel scopes its screens by it.
+     *
+     * @return BelongsTo<Bot, $this>
+     */
+    public function bot(): BelongsTo
+    {
+        return $this->belongsTo(Bot::class);
     }
 
     /** @return HasMany<CampaignAttribution, $this> */

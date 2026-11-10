@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 use TelegramBotEssentials\Campaigns\Contracts\PrizeType;
+use TelegramBotEssentials\Essence\Models\Bot;
 
 /**
  * A prize attached to a campaign: which type, how it is configured, and how
@@ -36,6 +37,16 @@ class CampaignPrize extends Model
             'active' => 'boolean',
             'method_config' => 'array',
         ];
+    }
+
+    /**
+     * The bot it belongs to; the web panel scopes its screens by it.
+     *
+     * @return BelongsTo<Bot, $this>
+     */
+    public function bot(): BelongsTo
+    {
+        return $this->belongsTo(Bot::class);
     }
 
     /** @return BelongsTo<Campaign, $this> */
