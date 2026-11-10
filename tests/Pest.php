@@ -7,8 +7,10 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use TelegramBotEssentials\Campaigns\Tests\TestCase;
+use TelegramBotEssentials\Campaigns\Tests\WebTestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+uses(WebTestCase::class, RefreshDatabase::class)->in('Web');
 
 /**
  * Replaces the base Http fake with one that answers like Telegram: getMe
