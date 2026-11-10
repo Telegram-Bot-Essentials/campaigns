@@ -2,10 +2,10 @@
 
 namespace TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin;
 
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
+use TelegramBotEssentials\Campaigns\Services\CampaignAdmin;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Essence\Enums\AllowableFields;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
@@ -52,9 +52,7 @@ class CampaignsAnswer extends StateAnswer
     {
         $name = $this->answerText();
 
-        Validator::validate(['name' => $name], ['name' => 'required|string|min:2|max:60']);
-
-        $campaign->update(['name' => $name]);
+        app(CampaignAdmin::class)->rename($campaign, $name);
         wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::show($campaign, $lastPage));
@@ -67,9 +65,7 @@ class CampaignsAnswer extends StateAnswer
     {
         $days = $this->answerText();
 
-        Validator::validate(['days' => $days], ['days' => 'required|integer|min:1|max:3650']);
-
-        $campaign->update(['expires_at' => now()->addDays((int) $days)]);
+        app(CampaignAdmin::class)->expireIn($campaign, $days);
         wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::show($campaign, $lastPage));
@@ -83,11 +79,7 @@ class CampaignsAnswer extends StateAnswer
      */
     public function updateCap(CampaignPrize $prize, int $lastPage): void
     {
-        $cap = $this->answerText();
-
-        Validator::validate(['cap' => $cap], ['cap' => 'required|integer|min:0|max:10000000']);
-
-        $prize->update(['max_grants' => (int) $cap === 0 ? null : (int) $cap]);
+        app(CampaignAdmin::class)->setCap($prize, $this->answerText());
         wHook()->conversation()->changeState();
 
         $this->requireMessageMeta()->updateAndContinueAction(CampaignsFeature::prize($prize, $lastPage));
