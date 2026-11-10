@@ -27,6 +27,24 @@ abstract class PrizeConfigForm extends Form
      */
     abstract protected function config(array $answers): array;
 
+    /** The type this form configures, for the web panel. */
+    public function prizeType(): string
+    {
+        return $this->prizeTypeKey();
+    }
+
+    /**
+     * The prize's config from cast answers, for the web panel, which asks the
+     * same questions without a conversation.
+     *
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    public function configFrom(array $answers): array
+    {
+        return $this->config($answers);
+    }
+
     public function onComplete(array $answers, array $ctx): TelegramResponse
     {
         $campaign = $this->campaign($ctx);

@@ -27,6 +27,18 @@ abstract class ClaimMethodConfigForm extends Form
      */
     abstract protected function config(array $answers): array;
 
+    /**
+     * The method's config from cast answers, for the web panel, which asks
+     * the same questions without a conversation.
+     *
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    public function configFrom(array $answers): array
+    {
+        return $this->config($answers);
+    }
+
     public function onComplete(array $answers, array $ctx): TelegramResponse
     {
         $prize = $this->prize($ctx);

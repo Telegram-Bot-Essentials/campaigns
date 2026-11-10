@@ -2,7 +2,7 @@
 
 namespace TelegramBotEssentials\Campaigns\Telegram\Forms;
 
-use TelegramBotEssentials\Campaigns\Models\Campaign;
+use TelegramBotEssentials\Campaigns\Services\CampaignAdmin;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Essence\Forms\Form;
 use TelegramBotEssentials\Essence\Forms\Steps\Text;
@@ -39,11 +39,11 @@ class CreateCampaignForm extends Form
         $name = $answers['name'] ?? null;
         $days = $answers['days'] ?? null;
 
-        $campaign = Campaign::create([
-            'bot_id' => wHook()->bot()->id,
-            'name' => is_string($name) ? $name : '',
-            'expires_at' => is_numeric($days) ? now()->addDays((int) $days) : null,
-        ]);
+        $campaign = app(CampaignAdmin::class)->create(
+            (int) wHook()->bot()->id,
+            is_string($name) ? $name : '',
+            is_numeric($days) ? (string) $days : null,
+        );
 
         return CampaignsFeature::show($campaign, $this->lastPage($ctx));
     }
