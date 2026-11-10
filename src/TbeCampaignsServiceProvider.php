@@ -19,6 +19,7 @@ use TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Member\PrizeClaimQu
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Admin\CampaignsAnswer;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Member\DiceAnswer;
+use TelegramBotEssentials\Campaigns\Web\CampaignsManagePlugin;
 use TelegramBotEssentials\Essence\Events\BotDeepLinkReceived;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\UserManagement\DTOs\BotUserFilter;
@@ -30,6 +31,9 @@ class TbeCampaignsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Class names only: Filament is loaded only where the app installed it.
+        webPanels()->manage(CampaignsManagePlugin::class);
+
         $this->app->singleton(PrizeTypes::class);
         $this->app->singleton(ClaimMethods::class);
     }
@@ -40,6 +44,7 @@ class TbeCampaignsServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'tbe-campaigns');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'tbe-campaigns');
 
         // CallbackQueries, StateAnswers and Forms register themselves here.
         callbackQueryBus()->addCallbackQueries([
