@@ -13,6 +13,17 @@ class CampaignLink
     }
 
     /**
+     * The link, for the web panel: null while Telegram cannot tell the bot's
+     * username, rather than failing the page.
+     */
+    public static function tryFor(Campaign $campaign): ?string
+    {
+        $username = $campaign->bot?->username();
+
+        return $username !== null ? 'https://t.me/'.$username.'?start='.$campaign->payload() : null;
+    }
+
+    /**
      * The bots table has no username column, so it is asked of Telegram once
      * and remembered per bot. An empty answer is never remembered.
      */
