@@ -2,10 +2,9 @@
 
 namespace TelegramBotEssentials\Campaigns\Telegram\CallbackQueries\Admin;
 
-use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
-use TelegramBotEssentials\Campaigns\Services\PrizeGranting;
+use TelegramBotEssentials\Campaigns\Services\CampaignAdmin;
 use TelegramBotEssentials\Campaigns\Telegram\Features\Admin\CampaignsFeature;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\CreateCampaignForm;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
@@ -52,7 +51,7 @@ class CampaignsQuery extends CallbackQuery
 
     public function toggle(Campaign $campaign, int $lastPage = 1): void
     {
-        $campaign->update(['active' => ! $campaign->active]);
+        app(CampaignAdmin::class)->toggle($campaign);
 
         CampaignsFeature::show($campaign, $lastPage)
             ->answer($campaign->active
@@ -74,7 +73,7 @@ class CampaignsQuery extends CallbackQuery
      */
     public function delete(Campaign $campaign, int $lastPage = 1): void
     {
-        $campaign->delete();
+        app(CampaignAdmin::class)->delete($campaign);
 
         CampaignsFeature::menu(max(1, $lastPage))
             ->answer(__('tbe-campaigns::campaigns.main.answers.deleted'))
@@ -101,7 +100,7 @@ class CampaignsQuery extends CallbackQuery
 
     public function clearExpiry(Campaign $campaign, int $lastPage = 1): void
     {
-        $campaign->update(['expires_at' => null]);
+        app(CampaignAdmin::class)->clearExpiry($campaign);
 
         CampaignsFeature::show($campaign, $lastPage)
             ->answer(__('tbe-campaigns::campaigns.main.answers.updated'))
@@ -161,7 +160,7 @@ class CampaignsQuery extends CallbackQuery
         $form = $method->configForm();
 
         if ($form === null) {
-            $prize->update(['method' => $method->key(), 'method_config' => $method->defaultConfig()]);
+            app(CampaignAdmin::class)->useMethod($prize, $method);
 
             CampaignsFeature::prize($prize, $lastPage)->answer(__('tbe-campaigns::claims.admin.updated'))->update();
 
@@ -176,7 +175,7 @@ class CampaignsQuery extends CallbackQuery
 
     public function togglePrize(CampaignPrize $prize, int $lastPage = 1): void
     {
-        $prize->update(['active' => ! $prize->active]);
+        app(CampaignAdmin::class)->togglePrize($prize);
 
         CampaignsFeature::prize($prize, $lastPage)->answer(__('tbe-campaigns::prizes.admin.updated'))->update();
     }
@@ -205,11 +204,7 @@ class CampaignsQuery extends CallbackQuery
     /** Retries every failed grant of the prize; each is claimed once, so a double tap does no harm. */
     public function retryPrize(CampaignPrize $prize, int $lastPage = 1): void
     {
-        $granting = app(PrizeGranting::class);
-
-        foreach ($prize->grants()->where('status', PrizeGrantStatus::Failed)->get() as $grant) {
-            $granting->retry($grant);
-        }
+        app(CampaignAdmin::class)->retryFailed($prize);
 
         CampaignsFeature::prize($prize->refresh(), $lastPage)->answer(__('tbe-campaigns::prizes.admin.retried'))->update();
     }
