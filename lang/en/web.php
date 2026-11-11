@@ -46,4 +46,7 @@ return [
     'charts' => [
         'joins' => 'Joins per day',
     ],
+    'empty' => [
+        'campaigns' => 'No campaigns yet',
+    ],
 ];

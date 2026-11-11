@@ -11,11 +11,11 @@ return [
         'unknown' => 'This claim method isn\'t available any more.',
     ],
     'click' => [
-        'label' => '👆 One tap',
+        'label' => 'One tap',
         'describe' => 'one tap',
     ],
     'dice' => [
-        'label' => '🎲 Dice game',
+        'label' => 'Dice game',
         'describe' => 'dice game: win on :numbers · :tries try(s)',
         'play' => '🎲 Play for: :prize',
         'lockLabel' => 'Playing for this prize…',

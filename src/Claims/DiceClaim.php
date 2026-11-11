@@ -2,13 +2,16 @@
 
 namespace TelegramBotEssentials\Campaigns\Claims;
 
+use Filament\Support\Icons\Heroicon;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use TelegramBotEssentials\Campaigns\Contracts\ClaimMethod;
 use TelegramBotEssentials\Campaigns\Enums\PrizeGrantStatus;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\Claims\DiceClaimForm;
 use TelegramBotEssentials\Campaigns\Telegram\StateAnswers\Member\DiceAnswer;
+use TelegramBotEssentials\Essence\Contracts\Labelled;
 use TelegramBotEssentials\Essence\Models\MessageMeta;
+use TelegramBotEssentials\Essence\Support\Label;
 use TelegramBotEssentials\Essence\Telegram\StateAnswers\StateAnswer;
 
 /**
@@ -19,7 +22,7 @@ use TelegramBotEssentials\Essence\Telegram\StateAnswers\StateAnswer;
  *
  * Config: `numbers` (list of 1-6 that win) and `tries` (throws allowed).
  */
-class DiceClaim implements ClaimMethod
+class DiceClaim implements ClaimMethod, Labelled
 {
     public const KEY = 'dice';
 
@@ -33,6 +36,11 @@ class DiceClaim implements ClaimMethod
     public function label(): string
     {
         return __('tbe-campaigns::claims.dice.label');
+    }
+
+    public function labelled(): Label
+    {
+        return new Label($this->label(), '🎲', Heroicon::OutlinedCube);
     }
 
     public function describe(array $config): string

@@ -49,7 +49,7 @@ return [
         ],
     ],
     'wallet' => [
-        'label' => '💰 Wallet credit',
+        'label' => 'Wallet credit',
         'describe' => ':amount wallet credit',
         'wizard' => [
             'lockLabel' => 'Adding wallet credit prize…',

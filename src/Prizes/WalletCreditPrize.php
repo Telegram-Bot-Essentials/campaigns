@@ -2,16 +2,19 @@
 
 namespace TelegramBotEssentials\Campaigns\Prizes;
 
+use Filament\Support\Icons\Heroicon;
 use TelegramBotEssentials\Campaigns\Contracts\PrizeType;
 use TelegramBotEssentials\Campaigns\Models\CampaignPrizeGrant;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\Prizes\WalletPrizeForm;
+use TelegramBotEssentials\Essence\Contracts\Labelled;
 use TelegramBotEssentials\Essence\Models\BotUser;
+use TelegramBotEssentials\Essence\Support\Label;
 
 /**
  * Wallet credit for joining. Registered only when user-wallet is installed.
  * Handed over the moment the user joins: there is nothing to claim.
  */
-class WalletCreditPrize implements PrizeType
+class WalletCreditPrize implements Labelled, PrizeType
 {
     public const KEY = 'wallet';
 
@@ -23,6 +26,11 @@ class WalletCreditPrize implements PrizeType
     public function label(): string
     {
         return __('tbe-campaigns::prizes.wallet.label');
+    }
+
+    public function labelled(): Label
+    {
+        return new Label($this->label(), '💰', Heroicon::OutlinedWallet);
     }
 
     public function describe(array $config): string

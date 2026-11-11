@@ -10,6 +10,7 @@ use TelegramBotEssentials\Campaigns\Models\CampaignPrize;
 use TelegramBotEssentials\Campaigns\Services\CampaignLink;
 use TelegramBotEssentials\Campaigns\Services\CampaignQr;
 use TelegramBotEssentials\Campaigns\Services\CampaignStats;
+use TelegramBotEssentials\Campaigns\Support\CampaignLabels;
 use TelegramBotEssentials\Essence\Exceptions\InvalidPageNumber;
 use TelegramBotEssentials\Essence\Services\TelegramPaginator;
 use TelegramBotEssentials\Essence\Telegram\TelegramResponse;
@@ -226,7 +227,7 @@ class CampaignsFeature
         foreach (prizeTypes()->all() as $type) {
             $replyMarkup->row([
                 Keyboard::inlineButton([
-                    'text' => $type->label(),
+                    'text' => CampaignLabels::of($type)->forBot(),
                     'callback_data' => encodeCallback(self::$type, 'pickPrizeType', [$campaign->id, $type->key(), $lastPage]),
                 ]),
             ]);
@@ -253,7 +254,7 @@ class CampaignsFeature
         foreach (claimMethods()->all() as $method) {
             $replyMarkup->row([
                 Keyboard::inlineButton([
-                    'text' => ($method->key() === $prize->method ? '✅ ' : '').$method->label(),
+                    'text' => ($method->key() === $prize->method ? '✅ ' : '').CampaignLabels::of($method)->forBot(),
                     'callback_data' => encodeCallback(self::$type, 'chooseMethod', [$prize->id, $method->key(), $lastPage]),
                 ]),
             ]);
