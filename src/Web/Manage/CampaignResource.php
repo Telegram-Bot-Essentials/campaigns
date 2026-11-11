@@ -10,7 +10,10 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use TelegramBotEssentials\Campaigns\Models\Campaign;
 use TelegramBotEssentials\Campaigns\Web\Widgets\CampaignOverview;
+use TelegramBotEssentials\Essence\Web\Filament\PanelDates;
+use TelegramBotEssentials\Essence\Web\Filament\PanelGroup;
 use TelegramBotEssentials\Essence\Web\Filament\PanelResource;
+use UnitEnum;
 
 /**
  * Campaigns: start links that tell where members came from, with the prizes
@@ -26,7 +29,9 @@ class CampaignResource extends PanelResource
 
     protected static ?string $tenantOwnershipRelationshipName = 'bot';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRocketLaunch;
+
+    protected static string|UnitEnum|null $navigationGroup = PanelGroup::Marketing;
 
     public static function getNavigationLabel(): string
     {
@@ -57,13 +62,16 @@ class CampaignResource extends PanelResource
                     ->color(fn (Campaign $record): string => self::statusColor($record)),
                 TextColumn::make('attributions_count')->label((string) __('tbe-campaigns::web.joined'))->sortable(),
                 TextColumn::make('prizes_count')->label((string) __('tbe-campaigns::web.prizes')),
-                TextColumn::make('expires_at')->label((string) __('tbe-campaigns::web.expires'))->since()->placeholder('—')->sortable(),
-                TextColumn::make('created_at')->label((string) __('tbe-campaigns::web.created'))->since()->sortable(),
+                PanelDates::since(TextColumn::make('expires_at'))->label((string) __('tbe-campaigns::web.expires'))->placeholder('—')->sortable(),
+                PanelDates::since(TextColumn::make('created_at'))->label((string) __('tbe-campaigns::web.created'))->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('active')->label((string) __('tbe-campaigns::web.enabled')),
             ])
             ->defaultSort('id', 'desc')
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->emptyStateHeading((string) __('tbe-campaigns::web.empty.campaigns'))
             ->recordUrl(fn (Campaign $record): string => ViewCampaign::getUrl(['record' => $record]));
     }
 

@@ -28,6 +28,7 @@ use TelegramBotEssentials\Campaigns\Services\CampaignLink;
 use TelegramBotEssentials\Campaigns\Services\CampaignPrizes;
 use TelegramBotEssentials\Campaigns\Services\CampaignQr;
 use TelegramBotEssentials\Campaigns\Services\CampaignStats;
+use TelegramBotEssentials\Campaigns\Support\CampaignLabels;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\ClaimMethodConfigForm;
 use TelegramBotEssentials\Campaigns\Telegram\Forms\PrizeConfigForm;
 use TelegramBotEssentials\Campaigns\Web\Widgets\CampaignJoinsChart;
@@ -158,8 +159,9 @@ class ViewCampaign extends Page implements HasTable
         }
 
         return Action::make('addPrize_'.Str::slug($type->key(), '_'))
-            ->label($type->label())
-            ->modalHeading($type->label())
+            ->label(CampaignLabels::of($type)->forWeb())
+            ->icon(CampaignLabels::of($type)->icon)
+            ->modalHeading(CampaignLabels::of($type)->forWeb())
             ->schema(fn (): array => FormFields::for($form))
             ->action(function (array $data, Action $action) use ($form, $type): void {
                 $answers = FormFields::answersFor($action, $form, $data);
@@ -179,12 +181,12 @@ class ViewCampaign extends Page implements HasTable
         $form = $formClass !== null ? app($formClass) : null;
 
         $action = Action::make('method_'.Str::slug($method->key(), '_'))
-            ->label($method->label())
-            ->icon(fn (CampaignPrize $record) => $record->method === $method->key() ? Heroicon::OutlinedCheck : null);
+            ->label(CampaignLabels::of($method)->forWeb())
+            ->icon(fn (CampaignPrize $record) => $record->method === $method->key() ? Heroicon::OutlinedCheck : CampaignLabels::of($method)->icon);
 
         if ($form instanceof ClaimMethodConfigForm) {
             return $action
-                ->modalHeading($method->label())
+                ->modalHeading(CampaignLabels::of($method)->forWeb())
                 ->schema(fn (): array => FormFields::for($form))
                 ->action(function (CampaignPrize $record, array $data, Action $action, CampaignAdmin $campaigns) use ($form, $method): void {
                     $answers = FormFields::answersFor($action, $form, $data);
