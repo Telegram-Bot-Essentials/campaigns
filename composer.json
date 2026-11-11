@@ -47,6 +47,9 @@
         "telegram-bot-essentials/user-management": "~0.0.17",
         "telegram-bot-essentials/user-wallet": "~0.0.22"
     },
+    "conflict": {
+        "telegram-bot-essentials/user-management": "<0.0.30"
+    },
     "autoload-dev": {
         "psr-4": {
             "TelegramBotEssentials\\Campaigns\\Tests\\": "tests/",

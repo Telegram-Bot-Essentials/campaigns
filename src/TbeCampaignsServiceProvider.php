@@ -113,27 +113,17 @@ class TbeCampaignsServiceProvider extends ServiceProvider
             ->with('campaign')
             ->first()?->campaign?->name;
 
-        // user-management before summaries takes the bot's wording only: hand it the old text then.
-        $shown = property_exists(UserSection::class, 'summary')
-            ? ['summary' => fn (BotUser $user): SectionSummary => new SectionSummary(
-                title: __('tbe-campaigns::user_management.section.label'),
-                value: $campaignName($user) ?? '—',
-                emoji: '📣',
-                icon: Heroicon::OutlinedRocketLaunch,
-            )]
-            : [
-                'label' => fn (BotUser $user) => __('tbe-campaigns::user_management.section.label'),
-                'content' => fn (BotUser $user): array => ['text' => __('tbe-campaigns::user_management.section.text', [
-                    'campaign' => e($campaignName($user) ?? '—'),
-                ])],
-            ];
-
         userManagementSections()->addSection(new UserSection(
-            ...$shown,
             key: 'campaign',
             order: 20,
             mode: SectionMode::INLINE,
             active: fn (BotUser $user) => CampaignAttribution::query()->where('bot_user_id', $user->id)->exists(),
+            summary: fn (BotUser $user): SectionSummary => new SectionSummary(
+                title: __('tbe-campaigns::user_management.section.label'),
+                value: $campaignName($user) ?? '—',
+                emoji: '📣',
+                icon: Heroicon::OutlinedRocketLaunch,
+            ),
         ));
 
         botUserFilters()->addFilter(new BotUserFilter(
