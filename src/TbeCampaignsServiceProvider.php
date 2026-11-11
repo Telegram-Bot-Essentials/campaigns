@@ -2,6 +2,7 @@
 
 namespace TelegramBotEssentials\Campaigns;
 
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -23,6 +24,7 @@ use TelegramBotEssentials\Campaigns\Web\CampaignsManagePlugin;
 use TelegramBotEssentials\Essence\Events\BotDeepLinkReceived;
 use TelegramBotEssentials\Essence\Models\BotUser;
 use TelegramBotEssentials\UserManagement\DTOs\BotUserFilter;
+use TelegramBotEssentials\UserManagement\DTOs\SectionSummary;
 use TelegramBotEssentials\UserManagement\DTOs\UserSection;
 use TelegramBotEssentials\UserManagement\Enums\SectionMode;
 use TelegramBotEssentials\UserWallet\Services\Wallet;
@@ -106,23 +108,31 @@ class TbeCampaignsServiceProvider extends ServiceProvider
             return;
         }
 
+        $campaignName = fn (BotUser $user): ?string => CampaignAttribution::query()
+            ->where('bot_user_id', $user->id)
+            ->with('campaign')
+            ->first()?->campaign?->name;
+
+        // user-management before summaries takes the bot's wording only: hand it the old text then.
+        $shown = property_exists(UserSection::class, 'summary')
+            ? ['summary' => fn (BotUser $user): SectionSummary => new SectionSummary(
+                title: __('tbe-campaigns::user_management.section.label'),
+                value: $campaignName($user) ?? '—',
+                emoji: '📣',
+                icon: Heroicon::OutlinedMegaphone,
+            )]
+            : [
+                'label' => fn (BotUser $user) => __('tbe-campaigns::user_management.section.label'),
+                'content' => fn (BotUser $user): array => ['text' => __('tbe-campaigns::user_management.section.text', [
+                    'campaign' => e($campaignName($user) ?? '—'),
+                ])],
+            ];
+
         userManagementSections()->addSection(new UserSection(
+            ...$shown,
             key: 'campaign',
             order: 20,
             mode: SectionMode::INLINE,
-            label: fn (BotUser $user) => __('tbe-campaigns::user_management.section.label'),
-            content: function (BotUser $user): array {
-                $attribution = CampaignAttribution::query()
-                    ->where('bot_user_id', $user->id)
-                    ->with('campaign')
-                    ->first();
-
-                $campaign = $attribution?->campaign;
-
-                return ['text' => __('tbe-campaigns::user_management.section.text', [
-                    'campaign' => $campaign !== null ? e($campaign->name) : '—',
-                ])];
-            },
             active: fn (BotUser $user) => CampaignAttribution::query()->where('bot_user_id', $user->id)->exists(),
         ));
 
