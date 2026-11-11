@@ -6,6 +6,36 @@ stabilizes at 1.0 a `0.0.x` bump may carry breaking changes.
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-11-11
+
+### Added
+
+- Give campaigns and prizes a bot relation.
+- Manage campaigns through a shared service.
+- Render the campaign page.
+- Translate the screens to english.
+- Translate the screens to persian.
+- Register the campaigns panel plugin.
+- Let the panel reuse prize and claim method forms.
+- Add the campaigns panel plugin.
+- List, view and edit campaigns and their prizes.
+- Chart joins and show campaign cards.
+- Give the campaign section as a summary.
+- Give prize types and claim methods a shared label.
+- Give the campaign profile card its own icon.
+- Group, date and tidy the campaign screens.
+- Show a campaign's figures as stat cards.
+
+### Changed
+
+- Change campaigns from the bot buttons through the service.
+- Edit campaigns from typed answers through the service.
+- Hand user-management the summary directly.
+
+### Fixed
+
+- Render png on both qrcode majors.
+
 ## [0.0.8] - 2026-11-03
 
 ### Changed
