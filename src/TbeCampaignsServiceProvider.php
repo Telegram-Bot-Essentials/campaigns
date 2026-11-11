@@ -119,7 +119,7 @@ class TbeCampaignsServiceProvider extends ServiceProvider
                 title: __('tbe-campaigns::user_management.section.label'),
                 value: $campaignName($user) ?? '—',
                 emoji: '📣',
-                icon: Heroicon::OutlinedMegaphone,
+                icon: Heroicon::OutlinedRocketLaunch,
             )]
             : [
                 'label' => fn (BotUser $user) => __('tbe-campaigns::user_management.section.label'),
